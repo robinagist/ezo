@@ -4,12 +4,7 @@ library for Easy Oracle
 '''
 
 
-# sets up the current directory for an ezoracle project
-def initialize(config_template):
-    # copy the config.json template to the current directory
-    # load the config.json template
-    # create the default directories
-    pass
+
 
 
 # main oracle class
