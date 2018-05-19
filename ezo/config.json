@@ -1,0 +1,16 @@
+{
+  "version" : "0.1",
+  "env" : {
+    "test": {
+      "owner-address": "owner account address",
+      "url": "ws://127.0.0.1:7545"
+    },
+    "prod": {
+      "owner-address": "owner account address",
+      "url": "ws://another.provider:8545"
+    }
+  },
+  "handler-dir":"/path/to/handler/dir",
+  "contract-dir":"/path/to/contract/dir",
+  "logging-dir":"/path/to/logging/dir"
+}
