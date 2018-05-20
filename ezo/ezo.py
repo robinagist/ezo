@@ -6,41 +6,45 @@ This code is released under the MIT License
 USE AT YOUR OWN RISK
 
 '''
-import optparse
-from utils import initialize, load_configuration
+import argparse
+from utils import initialize, load_configuration, get_account, get_url
+from web3 import Web3, WebsocketProvider
 
 # parse the command line
-usage = "usage: %prog [options] arg"
-parser = optparse.OptionParser(usage=usage)
+parser = argparse.ArgumentParser()
 
-parser.add_option('--init', '--initialize',
-                  action='store_true', dest="init",
-                  help="initialize an ezo project")
+parser.add_argument('command', metavar='init|deploy|start',
+                    help="use: 'init' to create initial project, "
+                         "'deploy' to compile and deploy contracts, 'start' to start")
 
-parser.add_option("-c", "--config",
-                  metavar='CONFIGFILE',
-                  dest="configfile",
-                  help="specify configuration file (defaults to config.json)", default="config.json")
+parser.add_argument("-c", "--config",
+                    metavar='CONFIGFILE',
+                    dest="configfile",
+                    help="specify configuration file (defaults to config.json)", default="config.json")
 
-parser.add_option("-d", '--deploy',
-                  metavar="STAGE",
-                  dest="stage",
-                  help="compile and deploy contracts for <STAGE> (e.g. dev, prod)")
+parser.add_argument("-s", '--stage',
+                    metavar="STAGE",
+                    dest="stage",
+                    help="run all actions on <STAGE> (e.g. dev, prod)")
 
-parser.add_option("--noexample", "--noexamples",
-                  action="store_true", dest="noexamples",
-                  help="creates initial project without example code"
-                  )
 
-options, args = parser.parse_args()
+args = parser.parse_args()
 
 # initialize a new project and exit
-if options.init:
-    initialize(options.noexamples)
+if args.command == 'init':
+    initialize()
     print("new ezo project initialized")
     exit()
 
 # load the configuration
-config = load_configuration(options.configfile)
+config = load_configuration(args.configfile)
 
-print("config: {}".format(config))
+print("stage: {}".format(args.stage))
+# open connection to websocket provider
+url = get_url(config, args.stage)
+print("url: {}".format(url))
+w3 = Web3(WebsocketProvider(url))
+
+# if deploy is set, compile and deploy the contract
+# if args.command == 'deploy':
+
