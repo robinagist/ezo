@@ -7,14 +7,16 @@ USE AT YOUR OWN RISK
 
 '''
 import argparse
-from utils import initialize, load_configuration, get_account, get_url
-from web3 import Web3, WebsocketProvider
+from utils import initialize, load_configuration
+from lib import EZO
+
 
 # parse the command line
 parser = argparse.ArgumentParser()
 
-parser.add_argument('command', metavar='init|deploy|start',
-                    help="use: 'init' to create initial project, "
+parser.add_argument('command', metavar='create|compile|deploy|view|start',
+                    help="use: 'create' to create initial project, "
+                         "'compile' contract <--all|--file|--address>"
                          "'deploy' to compile and deploy contracts, 'start' to start")
 
 parser.add_argument("-c", "--config",
@@ -31,20 +33,25 @@ parser.add_argument("-s", '--stage',
 args = parser.parse_args()
 
 # initialize a new project and exit
-if args.command == 'init':
+if args.command == 'create':
     initialize()
     print("new ezo project initialized")
     exit()
 
 # load the configuration
 config = load_configuration(args.configfile)
+ezo = EZO(config, args.stage)
 
-print("stage: {}".format(args.stage))
-# open connection to websocket provider
-url = get_url(config, args.stage)
-print("url: {}".format(url))
-w3 = Web3(WebsocketProvider(url))
+_, err = ezo.dial()
+if err:
+    print("dial error: {}".format(err))
+    exit(1)
+
+_, err = ezo.connect()
+if err:
+    print("db connect error: {}".format(err))
+    exit(1)
 
 # if deploy is set, compile and deploy the contract
-# if args.command == 'deploy':
+#if args.command == 'deploy':
 

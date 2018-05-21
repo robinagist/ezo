@@ -31,3 +31,8 @@ def get_url(config, stage):
 def get_account(config, stage):
     cfg = config["stage"][stage]
     return cfg["account"]
+
+# returns the database file location
+def get_db(config, stage):
+    cfg = config['stage'][stage]
+    return cfg[""]
