@@ -1,9 +1,9 @@
 {
   "version" : "0.1",
-  "env" : {
+  "stage" : {
     "test": {
-      "owner-address": "owner account address",
-      "url": "ws://127.0.0.1:7545"
+      "owner-address": "0x627306090abaB3A6e1400e9345bC60c78a8BEf57",
+      "url": "wss://127.0.0.1:7545"
     },
     "prod": {
       "owner-address": "owner account address",
@@ -12,5 +12,9 @@
   },
   "handler-dir":"/path/to/handler/dir",
   "contract-dir":"/path/to/contract/dir",
-  "logging-dir":"/path/to/logging/dir"
+  "logging":"/path/to/logging/log.txt",
+  "database" : {
+    "url": "mongodb://localhost:27017/",
+    "name": "ezo-dev"
+  }
 }

@@ -16,9 +16,9 @@ def load_configuration(configfile):
         with open(configfile) as config:
             cfg = json.load(config)
             config.close()
-            return cfg
-    except Exception as err:
-        print("exception: {}".format(err))
+            return cfg, None
+    except Exception as e:
+        return None, e
 
 
 # returns the url for the stage
@@ -33,6 +33,5 @@ def get_account(config, stage):
     return cfg["account"]
 
 # returns the database file location
-def get_db(config, stage):
-    cfg = config['stage'][stage]
-    return cfg[""]
+def get_db_url(config):
+    return config["database"]["url"]
