@@ -5,8 +5,8 @@ library for ezo
 
 
 from solc import compile_source
-from web3 import Web3, WebsocketProvider
-from utils import get_url, load_configuration, get_hash
+from web3 import Web3, WebsocketProvider, HTTPProvider
+from utils import get_url, load_configuration, get_hash, get_account
 from pymongo import MongoClient
 from datetime import datetime
 import json
@@ -25,13 +25,10 @@ class EZO:
     stage = None
 
     def __init__(self, configfile):
-
-        config, err = load_configuration(configfile)
+        self.config, err = load_configuration(configfile)
         if err:
             print("error loading configuration: {}".format(err))
             exit(1)
-
-        self.config = config
 
     def dial(self, url=None):
         '''
@@ -44,10 +41,12 @@ class EZO:
         if not url:
             url = get_url(self.config, self.stage)
 
-        if not url.startswith('ws') or not url.startswith('wss'):
-            return None, "URL must be WebSocket:  ws or wss"
         try:
-            self.w3 = Web3(WebsocketProvider(url))
+            if url.startswith('ws'):
+                self.w3 = Web3(WebsocketProvider(url))
+            elif url.startswith('http'):
+                self.w3 = Web3(HTTPProvider(url))
+
         except Exception as e:
             return None, e
 
@@ -122,23 +121,28 @@ class Contract:
         self.timestamp = datetime.utcnow()
 
 
-    def deploy(self, w3, account, stage):
+    def deploy(self):
         '''
         deploy this contract
         :param w3: network targeted for deployment
         :param account:  the account address to use
         :return: address, err
         '''
+
+        account = get_account(self._ezo.config, self._ezo.stage)
+        print(account)
+
         try:
             deployments = self._ezo.db["deployments"]
         except Exception as e:
             return None, e
 
         try:
-            contract = w3.eth.contract(abi=self.abi, bytecode=self.bin)
+            ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
             #TODO - proper gas calculation
-            tx_hash = contract.deploy(transaction={'from': account, 'gas': 40000})
-            tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
+
+            tx_hash = ct.deploy(transaction={'from': account, 'gas': 405000})
+            tx_receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
             address = tx_receipt['contractAddress']
 
         except Exception as e:
@@ -149,7 +153,7 @@ class Contract:
         d["hash"] = self.hash
         d["tx-hash"] = tx_hash
         d["address"] = address
-        d["stage"] = stage
+        d["stage"] = self._ezo.stage
         d["timestamp"] = datetime.utcnow()
 
         # save the deployment information
@@ -183,7 +187,7 @@ class Contract:
     @classmethod
     def load_from_hash(cls, hash, ezo):
         '''
-        given the hash of a contract, returns a contract instance
+        given the hash of a contract, returns a contract  from the data store
         :param hash: (string) hash of the contract source code
         :param ezo: ezo instance
         :return: contract instance, error

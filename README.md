@@ -9,7 +9,7 @@ Compiled contract and deployment state is currently maintained in Mongo.
 
 # this repo is in-progress - check back daily for updates ###
 
-Initialial Installation
+Initial Installation
 `ezo create` 
 
 Compile Contract

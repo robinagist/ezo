@@ -7,7 +7,7 @@ USE AT YOUR OWN RISK
 
 '''
 import argparse
-from utils import initialize, get_contract_path
+from utils import initialize, get_contract_path, get_account
 from lib import EZO, Contract
 
 
@@ -20,14 +20,19 @@ parser.add_argument('command', nargs='*', metavar='create|compile|deploy|gen|vie
                          "'deploy' to compile and deploy contracts, 'start' to start")
 
 parser.add_argument("-c", "--config",
-                    metavar='CONFIGFILE',
+                    metavar='<configfile>',
                     dest="configfile",
                     help="specify configuration file (defaults to config.json)", default="config.json")
 
 parser.add_argument("-s", '--stage',
-                    metavar="STAGE",
+                    metavar="<stage>",
                     dest="stage",
                     help="run all actions on <STAGE> (e.g. dev, prod)")
+
+parser.add_argument("-a", "--account",
+                    metavar='<account_address>',
+                    dest="account",
+                    help="account address - overrides the target stage default account address")
 
 
 args = parser.parse_args()
@@ -64,6 +69,18 @@ if args.command[0] == 'compile':
         # persist the compiled contract
         for contract in contracts:
             contract.source = contracts_source
+            '''
+            ezo.stage = args.stage
+            print("deploying")
+            _, err = ezo.dial()
+            if err:
+                print("dial error: {}".format(err))
+                exit(1)
+            _, err = contract.deploy()
+            if err:
+                print("error: {}".format(err))
+                exit(1)
+            '''
             iid, err = contract.save()
             if err:
                 print("error while persisting Contract to datastore: {}".format(err))
@@ -78,12 +95,12 @@ if args.command[0] == 'compile':
 
 ### deploy ###
 if args.command[0] == "deploy":
-
     # stage must be set before deploying
     if not args.stage:
         print("target stage must be set with the -s option before deploying")
         exit(2)
 
+    print("deploying...")
     ezo.stage = args.stage
 
     _, err = ezo.dial()
@@ -92,10 +109,17 @@ if args.command[0] == "deploy":
         exit(1)
 
     # get the compiled contract proxy by it's source hash
-    c = Contract.load_from_hash(args.command[1], ezo)
+    c, err = Contract.load_from_hash(args.command[1], ezo)
+    if err:
+        print("error loading contract from storage: {}".format(err))
+        exit(1)
 
     # deploy the contract
-
-
+    addr, err = c.deploy()
+    if err:
+        print("error deploying contract {} to {}".format(c.hash, ezo.stage))
+        print("message: {}".format(err))
+        exit(1)
+    print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.stage, addr ))
 
 
