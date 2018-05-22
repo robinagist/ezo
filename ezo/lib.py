@@ -6,13 +6,17 @@ library for ezo
 
 from solc import compile_source
 from web3 import Web3, WebsocketProvider
-from utils import get_url, load_configuration, get_contract_path
+from utils import get_url, load_configuration, get_hash
 from pymongo import MongoClient
 from datetime import datetime
 import json
 
 
 class EZO:
+    '''
+    Easy Oracle (ezo) base class
+
+    '''
 
     w3 = None
     db = None
@@ -50,6 +54,13 @@ class EZO:
         return self.w3, None
 
     def connect(self, url=None):
+        '''
+        connects to MongoDB instance
+
+        :param url: (string) full URL for the mongo instance
+        :return: database handle, error
+        '''
+
         if not url:
             url = self.config["database"]["url"]
         name = self.config["database"]["name"]
@@ -62,11 +73,12 @@ class EZO:
         return self.db, None
 
     def close(self):
+        '''
+        close mongo and web3 connections
+        :return: None
+        '''
         self.client.close()
 
-
-    def contracts_dir(self):
-        return get_contract_path(self.config)
 
 
 # main oracle class
@@ -96,13 +108,11 @@ class Oracle:
 
 class Contract:
 
-    address = None
     abi = None
     bin = None
     name = None
     source = None
-    source_md = None
-    tx_hash = None
+    hash = None
     timestamp = None
     _ezo = None
 
@@ -112,25 +122,42 @@ class Contract:
         self.timestamp = datetime.utcnow()
 
 
-    def deploy(self, w3, account):
+    def deploy(self, w3, account, stage):
         '''
         deploy this contract
         :param w3: network targeted for deployment
         :param account:  the account address to use
         :return: address, err
         '''
+        try:
+            deployments = self._ezo.db["deployments"]
+        except Exception as e:
+            return None, e
 
         try:
             contract = w3.eth.contract(abi=self.abi, bytecode=self.bin)
             #TODO - proper gas calculation
-            self.tx_hash = contract.deploy(transaction={'from': account, 'gas': 40000})
-            tx_receipt = w3.eth.getTransactionReceipt(self.tx_hash)
-            self.address = tx_receipt['contractAddress']
+            tx_hash = contract.deploy(transaction={'from': account, 'gas': 40000})
+            tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
+            address = tx_receipt['contractAddress']
 
         except Exception as e:
             return None, e
 
-        return self.address, None
+        d = dict()
+        d["contact-name"] = self.name
+        d["hash"] = self.hash
+        d["tx-hash"] = tx_hash
+        d["address"] = address
+        d["stage"] = stage
+        d["timestamp"] = datetime.utcnow()
+
+        # save the deployment information
+        try:
+            iid = deployments.insert(d)
+        except Exception as e:
+            return None, e
+        return address, None
 
     # saves the compiled contract essentials to leveldb
     def save(self):
@@ -140,21 +167,42 @@ class Contract:
             return None, e
 
         c = dict()
-        c["address"] = self.address
         c["name"] = self.name
         c["abi"] = self.abi
         c["bin"] = self.bin
         c["source"] = self.source
-        c["source-md"] = self.source_md
-        c["tx-hash"] = self.tx_hash
+        c["hash"] = get_hash(self.source)
         c["timestamp"] = self.timestamp
-        c["deployed"] = "not deployed"
 
         try:
-            iid = contract_collection.insert_one(c)
+            iid = contract_collection.insert(c)
         except Exception as e:
             return None, e
         return iid, None
+
+    @classmethod
+    def load_from_hash(cls, hash, ezo):
+        '''
+        given the hash of a contract, returns a contract instance
+        :param hash: (string) hash of the contract source code
+        :param ezo: ezo instance
+        :return: contract instance, error
+        '''
+        try:
+            cp = ezo.db.contracts.find_one({"hash": hash}) #.sort('timestamp', pymongo.DESCENDING)
+        except Exception as e:
+            return None, e
+
+        # create a new Contract
+        c = Contract(cp["name"], ezo)
+        c.abi = cp["abi"]
+        c.bin = cp["bin"]
+        c.hash = cp["hash"]
+        c.source = cp["source"]
+        c.timestamp = cp["timestamp"]
+
+        return c, None
+
 
 
     @classmethod
@@ -177,9 +225,11 @@ class Contract:
     @classmethod
     def compile(cls, source, ezo):
         '''
+        compiles the source code
 
-        :param source:
-        :return:
+        :param source: (string) - contract source code
+        :param ezo: - ezo reference for Contract object creation
+        :return: (list) compiled source
         '''
         try:
             compiled = compile_source(source)
@@ -190,6 +240,7 @@ class Contract:
                 c.abi = interface['abi']
                 c.bin = interface['bin']
                 compiled_list.append(c)
+
         except Exception as e:
             return None, e
         return compiled_list, None
