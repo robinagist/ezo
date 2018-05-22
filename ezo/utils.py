@@ -35,3 +35,9 @@ def get_account(config, stage):
 # returns the database file location
 def get_db_url(config):
     return config["database"]["url"]
+
+# returns the base directory for contacts
+def get_contract_path(config, filename=None):
+    if filename:
+        return "{}/{}".format(config["contract-dir"], filename)
+    return config["contract-dir"]

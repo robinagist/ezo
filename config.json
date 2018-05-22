@@ -11,7 +11,7 @@
     }
   },
   "handler-dir":"/path/to/handler/dir",
-  "contract-dir":"/path/to/contract/dir",
+  "contract-dir":"/Users/robin/PycharmProjects/ezo/contracts",
   "logging":"/path/to/logging/log.txt",
   "database" : {
     "url": "mongodb://localhost:27017/",

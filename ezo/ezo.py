@@ -7,8 +7,8 @@ USE AT YOUR OWN RISK
 
 '''
 import argparse
-from utils import initialize, load_configuration
-from lib import EZO
+from utils import initialize, get_contract_path
+from lib import EZO, Contract
 
 
 # parse the command line
@@ -52,8 +52,26 @@ if args.command[0] == 'compile':
     # single file in contracts directory
 
     if args.command[1]:
-        filename = args.command[1]
-        print(filename)
+        filename = get_contract_path(ezo.config, args.command[1])
+        contracts_source, err = Contract.load(filename)
+        if err:
+            print("error loading contracts file: {}".format(err))
+
+        contracts, err = Contract.compile(contracts_source, ezo)
+        if err:
+            print("error compiling contracts source: {}".format(err))
+
+        # persist the compiled contract
+        for contract in contracts:
+            iid, err = contract.save()
+            print("iid: {}".format(iid))
+            if err:
+                print("error while persisting Contract to datastore: {}".format(err))
+            else:
+                print("id saved: {}".format(iid))
+
+        exit(0)
+
     else:
         print("currently only supports compiling a single source file")
         exit(0)
@@ -71,6 +89,6 @@ if err:
     exit(1)
 
 ### deploy
-if args.command == 'deploy':
+# if args.command == 'deploy':
 
 
