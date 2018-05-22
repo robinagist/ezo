@@ -6,7 +6,7 @@ library for ezo
 
 from solc import compile_source
 from web3 import Web3, WebsocketProvider
-from utils import get_url, load_configuration
+from utils import get_url, load_configuration, get_contract_path
 from pymongo import MongoClient
 from datetime import datetime
 import json
@@ -63,6 +63,10 @@ class EZO:
 
     def close(self):
         self.client.close()
+
+
+    def contracts_dir(self):
+        return get_contract_path(self.config)
 
 
 # main oracle class
@@ -147,14 +151,14 @@ class Contract:
         c["deployed"] = "not deployed"
 
         try:
-            iid = contract_collection.insert(c)
+            iid = contract_collection.insert_one(c)
         except Exception as e:
             return None, e
-        return iid
+        return iid, None
 
 
-
-    def load(self, filepath):
+    @classmethod
+    def load(cls, filepath):
         '''
         loads a contract file
 
@@ -164,14 +168,14 @@ class Contract:
 
         try:
             with open(filepath, "r") as fh:
-                self.source = fh.read()
+                source = fh.read()
         except Exception as e:
             return None, e
-        return self.source, None
+        return source, None
 
 
     @classmethod
-    def compile(cls, source):
+    def compile(cls, source, ezo):
         '''
 
         :param source:
@@ -181,7 +185,7 @@ class Contract:
             compiled = compile_source(source)
             compiled_list = []
             for name in compiled:
-                c = Contract(name)
+                c = Contract(name, ezo)
                 interface = compiled[name]
                 c.abi = interface['abi']
                 c.bin = interface['bin']
