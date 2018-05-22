@@ -32,7 +32,7 @@ parser.add_argument("-s", '--stage',
 
 args = parser.parse_args()
 
-### initialize a new project and exit
+### initialize a new project ###
 if args.command[0] == 'create':
     initialize()
     print("new ezo project initialized")
@@ -47,10 +47,10 @@ if err:
     print("db connect error: {}".format(err))
     exit(1)
 
-### compile
+### compile ###
 if args.command[0] == 'compile':
     # single file in contracts directory
-
+    print("compiling contracts")
     if args.command[1]:
         filename = get_contract_path(ezo.config, args.command[1])
         contracts_source, err = Contract.load(filename)
@@ -63,8 +63,8 @@ if args.command[0] == 'compile':
 
         # persist the compiled contract
         for contract in contracts:
+            contract.source = contracts_source
             iid, err = contract.save()
-            print("iid: {}".format(iid))
             if err:
                 print("error while persisting Contract to datastore: {}".format(err))
             else:
@@ -74,21 +74,28 @@ if args.command[0] == 'compile':
 
     else:
         print("currently only supports compiling a single source file")
-        exit(0)
+        exit(2)
 
-# if deploy is set, compile and deploy the contract
-# stage must be set before deploying
-if not args.stage:
-    print("target stage must be set with the -s option before deploying")
-    exit(0)
-ezo.stage = args.stage
+### deploy ###
+if args.command[0] == "deploy":
 
-_, err = ezo.dial()
-if err:
-    print("dial error: {}".format(err))
-    exit(1)
+    # stage must be set before deploying
+    if not args.stage:
+        print("target stage must be set with the -s option before deploying")
+        exit(2)
 
-### deploy
-# if args.command == 'deploy':
+    ezo.stage = args.stage
+
+    _, err = ezo.dial()
+    if err:
+        print("dial error: {}".format(err))
+        exit(1)
+
+    # get the compiled contract proxy by it's source hash
+    c = Contract.load_from_hash(args.command[1], ezo)
+
+    # deploy the contract
+
+
 
 

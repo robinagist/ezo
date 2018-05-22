@@ -1,4 +1,4 @@
-import json, os
+import json, xxhash
 
 
 # sets up the current directory for an ezoracle project
@@ -32,12 +32,21 @@ def get_account(config, stage):
     cfg = config["stage"][stage]
     return cfg["account"]
 
+
 # returns the database file location
 def get_db_url(config):
     return config["database"]["url"]
+
 
 # returns the base directory for contacts
 def get_contract_path(config, filename=None):
     if filename:
         return "{}/{}".format(config["contract-dir"], filename)
     return config["contract-dir"]
+
+
+# returns an xxhash of the passed string
+def get_hash(str):
+    bs = bytes(str, 'utf-8')
+    return xxhash.xxh64(bs).hexdigest()
+
