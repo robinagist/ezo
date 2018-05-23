@@ -10,8 +10,6 @@ from utils import get_url, load_configuration, get_hash, get_account
 from pymongo import MongoClient
 import pymongo
 from datetime import datetime
-from collections import OrderedDict
-import json
 
 
 class EZO:
@@ -155,8 +153,6 @@ class Contract:
         '''
 
         account = get_account(self._ezo.config, self._ezo.stage)
-        print(account)
-
         try:
             deployments = self._ezo.db["deployments"]
         except Exception as e:
@@ -188,7 +184,7 @@ class Contract:
             return None, e
         return address, None
 
-    # saves the compiled contract essentials to leveldb
+    # saves the compiled contract essentials to mongo
     def save(self):
         try:
             contract_collection = self._ezo.db["contracts"]
