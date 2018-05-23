@@ -3,11 +3,13 @@
   "stage" : {
     "test": {
       "account": "0x627306090abaB3A6e1400e9345bC60c78a8BEf57",
-      "url": "http://127.0.0.1:7545"
+      "url": "http://127.0.0.1:7545",
+      "network": "local1"
     },
     "test2": {
       "account": "0x6f41fffc0338e715e8aac4851afc4079b712af70",
-      "url": "http://localhost:8545"
+      "url": "http://localhost:8545",
+      "network": "local2"
     }
 
   },

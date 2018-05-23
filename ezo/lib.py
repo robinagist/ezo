@@ -8,7 +8,9 @@ from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from utils import get_url, load_configuration, get_hash, get_account
 from pymongo import MongoClient
+import pymongo
 from datetime import datetime
+from collections import OrderedDict
 import json
 
 
@@ -32,7 +34,7 @@ class EZO:
 
     def dial(self, url=None):
         '''
-        connects to a remote WebSocket EVM provider
+        connects to a node
 
         :param url: string (optional) - resource in which to connect.
         if not provided, will use default for the stage
@@ -70,6 +72,29 @@ class EZO:
         except Exception as e:
             return None, e
         return self.db, None
+
+
+    def view_deployments(self, terms=None):
+        deploys = list()
+        try:
+            for deploy in self.db.deployments.find({}).sort('timestamp', pymongo.DESCENDING):
+                deploys.append(deploy)
+        except Exception as e:
+            return None, e
+        return deploys, None
+
+    def view_contracts(self, terms):
+        contracts = list()
+        try:
+            for contract in self.db.contracts.find({}).sort('timestamp', pymongo.DESCENDING):
+                contracts.append(contract)
+        except Exception as e:
+            return None, e
+        return contracts, None
+
+    def view_source(self, hash):
+        pass
+
 
     def close(self):
         '''
@@ -149,7 +174,7 @@ class Contract:
             return None, e
 
         d = dict()
-        d["contact-name"] = self.name
+        d["contract-name"] = self.name
         d["hash"] = self.hash
         d["tx-hash"] = tx_hash
         d["address"] = address

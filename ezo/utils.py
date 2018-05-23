@@ -50,3 +50,13 @@ def get_hash(str):
     bs = bytes(str, 'utf-8')
     return xxhash.xxh64(bs).hexdigest()
 
+def display_deployment_rows(rows):
+    for row in rows:
+        print("{} - {} - {} - {} - {}".format(row["contact-name"], row["hash"], row["address"], row["stage"], row["timestamp"]))
+    print("total deployments: {}".format(len(rows)))
+
+def display_contract_rows(rows):
+    for row in rows:
+        print("{} - {} - {}".format(row['name'], row['hash'], row['timestamp']))
+    print("total contracts: {}".format(len(rows)))
+
