@@ -7,14 +7,14 @@ USE AT YOUR OWN RISK
 
 '''
 import argparse
-from utils import initialize, get_contract_path, get_account
+from utils import initialize, get_contract_path, display_deployment_rows, display_contract_rows
 from lib import EZO, Contract
 
 
 # parse the command line
 parser = argparse.ArgumentParser()
 
-parser.add_argument('command', nargs='*', metavar='create|compile|deploy|gen|view|start',
+parser.add_argument('command', nargs='*', metavar='create|compile|deploy|gen|view|delete|start',
                     help="use: 'create' to create initial project, "
                          "'compile' contract <--all|--file|--address>"
                          "'deploy' to compile and deploy contracts, 'start' to start")
@@ -121,5 +121,24 @@ if args.command[0] == "deploy":
         print("message: {}".format(err))
         exit(1)
     print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.stage, addr ))
+    exit(0)
 
+### view ###
+if args.command[0] == "view":
+    if args.command[1] == "deploys":
+        rows, err = ezo.view_deployments(args.command[2])
+        if err:
+            print("error: view deploys: {}".format(err))
+        display_deployment_rows(rows)
 
+    elif args.command[1] == "contracts":
+        rows, err = ezo.view_contracts(args.command[2])
+        if err:
+            print("error: view contracts: {}".format(err))
+        display_contract_rows(rows)
+
+    elif args.command[1] == "source":
+        ezo.view_source(args.command[2])
+    else:
+        print("view command requires more specifics.  follow command with one of <deploys|contracts|source>")
+        exit(1)
