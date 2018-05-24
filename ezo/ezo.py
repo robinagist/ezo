@@ -1,5 +1,5 @@
 '''
-EZOracle
+ezo - easy Ethereum oracle builder
 (c) 2018 - Robin A. Gist - All Rights Reserved
 This code is released under the MIT License
 
@@ -8,7 +8,7 @@ USE AT YOUR OWN RISK
 '''
 import argparse
 from utils import initialize, get_contract_path, display_deployment_rows, display_contract_rows
-from lib import EZO, Contract
+from lib import EZO, Contract, Oracle
 
 
 # parse the command line
@@ -69,18 +69,6 @@ if args.command[0] == 'compile':
         # persist the compiled contract
         for contract in contracts:
             contract.source = contracts_source
-            '''
-            ezo.stage = args.stage
-            print("deploying")
-            _, err = ezo.dial()
-            if err:
-                print("dial error: {}".format(err))
-                exit(1)
-            _, err = contract.deploy()
-            if err:
-                print("error: {}".format(err))
-                exit(1)
-            '''
             iid, err = contract.save()
             if err:
                 print("error while persisting Contract to datastore: {}".format(err))
@@ -100,7 +88,7 @@ if args.command[0] == "deploy":
         print("target stage must be set with the -s option before deploying")
         exit(2)
 
-    print("deploying...")
+    print("deploying contract {} to {}".format(args.command[1], args.stage))
     ezo.stage = args.stage
 
     _, err = ezo.dial()
@@ -142,3 +130,27 @@ if args.command[0] == "view":
     else:
         print("view command requires more specifics.  follow command with one of <deploys|contracts|source>")
         exit(1)
+
+
+### generate handler scaffold ###
+if args.command[0] == "gen":
+
+    # get the abi of the contract from it's hash
+    c = Contract.load_from_hash(args.command[1], ezo)[0]
+    abi = c.abi
+    # print(json.dumps(abi, indent=2))
+    for el in abi:
+        if el["type"] == "event":
+            inputs = el["inputs"]
+            name = inputs["name"]
+            type = inputs["type"]
+
+
+### start oracle ###
+if args.command[0] == "start":
+    oracle = Oracle(ezo)
+    oracle.start()
+
+
+
+

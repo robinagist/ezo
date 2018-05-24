@@ -106,23 +106,38 @@ class EZO:
 # main oracle class
 class Oracle:
 
-    # event callback dict
-    _ecb = dict()
+    # listeners
+    listeners = list()
 
     # account address
     address = None
     config = None
 
-    def __init__(self, config):
-        # open connection to WebSockets provider
+    def __init__(self, ezo):
+        # initialize listeners
 
         pass
-
-    def set_event_handler(self, event, handler):
-        self._ecb[event] = handler
 
     async def start(self):
-        pass
+        for l in self.listeners:
+            await l.start()
+
+    async def stop(self):
+        for l in self.listeners:
+            await l.stop()
+
+
+# oracle event listener
+class Listener:
+
+    address = None
+    _ezo = None
+
+    def __init__(self, ezo):
+        self._ezo = ezo
+
+    async def start(self, address):
+        self.address = address
 
     async def stop(self):
         pass
@@ -275,4 +290,12 @@ class Event:
 
     def __init__(self, name):
         pass
+
+
+class EventHandler:
+
+    def __init__(self, name):
+        pass
+
+
 
