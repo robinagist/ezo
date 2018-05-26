@@ -1,4 +1,40 @@
-import json, xxhash
+import json, argparse
+
+class EZOCommandProcessor():
+
+    argv = None
+    args = None
+
+    def __init__(self, argv):
+        self.argv = argv
+        self._setup()
+
+    def _setup(self):
+        # parse the command line
+        parser = argparse.ArgumentParser(self.argv)
+
+        parser.add_argument('command', nargs='*', metavar='create|compile|deploy|gen|view|delete|start',
+                            help="use: 'create' to create initial project, "
+                                 "'compile' contract <--all|--file|--address>"
+                                 "'deploy' to compile and deploy contracts, 'start' to start")
+
+        parser.add_argument("-c", "--config",
+                            metavar='<configfile>',
+                            dest="configfile",
+                            help="specify configuration file (defaults to config.json)", default="config.json")
+
+        parser.add_argument("-s", '--stage',
+                            metavar="<stage>",
+                            dest="stage",
+                            help="run all actions on <STAGE> (e.g. dev, prod)")
+
+        parser.add_argument("-a", "--account",
+                            metavar='<account_address>',
+                            dest="account",
+                            help="account address - overrides the target stage default account address")
+
+        self.args = parser.parse_args()
+        return self.args
 
 
 # sets up the current directory for an ezoracle project
@@ -20,44 +56,5 @@ def load_configuration(configfile):
         return None, e
 
 
-# returns the url for the stage
-def get_url(config, stage):
-    cfg = config["stage"][stage]
-    return cfg["url"]
 
-
-# returns the account address for the stage
-def get_account(config, stage):
-    cfg = config["stage"][stage]
-    return cfg["account"]
-
-
-# returns the database file location
-def get_db_url(config):
-    return config["database"]["url"]
-
-
-# returns the base directory for contacts
-def get_contract_path(config, filename=None):
-    if filename:
-        return "{}/{}".format(config["contract-dir"], filename)
-    return config["contract-dir"]
-
-
-# returns an xxhash of the passed string
-def get_hash(str):
-    bs = bytes(str, 'utf-8')
-    return xxhash.xxh64(bs).hexdigest()
-
-
-def display_deployment_rows(rows):
-    for row in rows:
-        print("{} - {} - {} - {} - {}".format(row["contact-name"], row["hash"], row["address"], row["stage"], row["timestamp"]))
-    print("total deployments: {}".format(len(rows)))
-
-
-def display_contract_rows(rows):
-    for row in rows:
-        print("{} - {} - {}".format(row['name'], row['hash'], row['timestamp']))
-    print("total contracts: {}".format(len(rows)))
 
