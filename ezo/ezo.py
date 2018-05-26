@@ -7,150 +7,154 @@ USE AT YOUR OWN RISK
 
 '''
 import argparse
-from utils import initialize, get_contract_path, display_deployment_rows, display_contract_rows
-from lib import EZO, Contract, Oracle
+from helpers import get_contract_path, display_deployment_rows, display_contract_rows
+from utils import initialize, EZOCommandProcessor
+from lib import EZO, Contract
+import sys
+
+### TODO - REFACTOR THIS ENTIRE SCRIPT after settling on MVP release functionality
 
 
-# parse the command line
-parser = argparse.ArgumentParser()
+def main():
+    args = EZOCommandProcessor(sys.argv).args
 
-parser.add_argument('command', nargs='*', metavar='create|compile|deploy|gen|view|delete|start',
-                    help="use: 'create' to create initial project, "
-                         "'compile' contract <--all|--file|--address>"
-                         "'deploy' to compile and deploy contracts, 'start' to start")
+    ### initialize a new project ###
+    if args.command[0] == 'create':
+        initialize()
+        print("new ezo project initialized")
+        exit()
 
-parser.add_argument("-c", "--config",
-                    metavar='<configfile>',
-                    dest="configfile",
-                    help="specify configuration file (defaults to config.json)", default="config.json")
+    # start ezo
+    ezo = EZO(args.configfile)
 
-parser.add_argument("-s", '--stage',
-                    metavar="<stage>",
-                    dest="stage",
-                    help="run all actions on <STAGE> (e.g. dev, prod)")
+    # connect to mongo
+    _, err = ezo.connect()
+    if err:
+        print("db connect error: {}".format(err))
+        exit(1)
 
-parser.add_argument("-a", "--account",
-                    metavar='<account_address>',
-                    dest="account",
-                    help="account address - overrides the target stage default account address")
-
-
-args = parser.parse_args()
-
-### initialize a new project ###
-if args.command[0] == 'create':
-    initialize()
-    print("new ezo project initialized")
-    exit()
-
-# start ezo
-ezo = EZO(args.configfile)
-
-# connect to mongo
-_, err = ezo.connect()
-if err:
-    print("db connect error: {}".format(err))
-    exit(1)
-
-### compile ###
-if args.command[0] == 'compile':
-    # single file in contracts directory
-    print("compiling contracts")
-    if args.command[1]:
-        filename = get_contract_path(ezo.config, args.command[1])
-        contracts_source, err = Contract.load(filename)
-        if err:
-            print("error loading contracts file: {}".format(err))
-
-        contracts, err = Contract.compile(contracts_source, ezo)
-        if err:
-            print("error compiling contracts source: {}".format(err))
-
-        # persist the compiled contract
-        for contract in contracts:
-            contract.source = contracts_source
-            iid, err = contract.save()
+    ### compile ###
+    if args.command[0] == 'compile':
+        # single file in contracts directory
+        print("compiling contracts")
+        if args.command[1]:
+            filename = get_contract_path(ezo.config, args.command[1])
+            contracts_source, err = Contract.load(filename)
             if err:
-                print("error while persisting Contract to datastore: {}".format(err))
-            else:
-                print("id saved: {}".format(iid))
+                print("error loading contracts file: {}".format(err))
 
+            contracts, err = Contract.compile(contracts_source, ezo)
+            if err:
+                print("error compiling contracts source: {}".format(err))
+
+            # persist the compiled contract
+            for contract in contracts:
+                contract.source = contracts_source
+                iid, err = contract.save()
+                if err:
+                    print("error while persisting Contract to datastore: {}".format(err))
+                else:
+                    print("id saved: {}".format(iid))
+
+            exit(0)
+
+        else:
+            print("please supply a source file")
+            exit(2)
+
+    ### deploy ###
+    if args.command[0] == "deploy":
+        # stage must be set before deploying
+        if not args.stage:
+            print("target stage must be set with the -s option before deploying")
+            exit(2)
+
+        print("deploying contract {} to {}".format(args.command[1], args.stage))
+        ezo.stage = args.stage
+
+        _, err = ezo.dial()
+        if err:
+            print("dial error: {}".format(err))
+            exit(1)
+
+        # get the compiled contract proxy by it's source hash
+        c, err = Contract.create_from_hash(args.command[1], ezo)
+        if err:
+            print("error loading contract from storage: {}".format(err))
+            exit(1)
+
+        # deploy the contract
+        addr, err = c.deploy()
+        if err:
+            print("error deploying contract {} to {}".format(c.hash, ezo.stage))
+            print("message: {}".format(err))
+            exit(1)
+        print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.stage, addr ))
         exit(0)
 
-    else:
-        print("currently only supports compiling a single source file")
-        exit(2)
+    ### view ###
+    if args.command[0] == "view":
+        if args.command[1] == "deploys":
+            rows, err = ezo.view_deployments(args.command[2])
+            if err:
+                print("error: view deploys: {}".format(err))
+            display_deployment_rows(rows)
 
-### deploy ###
-if args.command[0] == "deploy":
-    # stage must be set before deploying
-    if not args.stage:
-        print("target stage must be set with the -s option before deploying")
-        exit(2)
+        elif args.command[1] == "contracts":
+            rows, err = ezo.view_contracts(args.command[2])
+            if err:
+                print("error: view contracts: {}".format(err))
+            display_contract_rows(rows)
 
-    print("deploying contract {} to {}".format(args.command[1], args.stage))
-    ezo.stage = args.stage
+        elif args.command[1] == "source":
+            ezo.view_source(args.command[2])
+        else:
+            print("view command requires more specifics.  follow command with one of <deploys|contracts|source>")
+            exit(1)
 
-    _, err = ezo.dial()
-    if err:
-        print("dial error: {}".format(err))
-        exit(1)
 
-    # get the compiled contract proxy by it's source hash
-    c, err = Contract.load_from_hash(args.command[1], ezo)
-    if err:
-        print("error loading contract from storage: {}".format(err))
-        exit(1)
+    ### generate ###
+    ### scaffold <filehash> - generate handler scaffolding for the compiled contract
+    ### account <network> - create a new account for the target network
+    if args.command[0] == "gen":
 
-    # deploy the contract
-    addr, err = c.deploy()
-    if err:
-        print("error deploying contract {} to {}".format(c.hash, ezo.stage))
-        print("message: {}".format(err))
-        exit(1)
-    print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.stage, addr ))
-    exit(0)
+        # get the abi of the contract from it's hash
+        if not len(args.command) > 1:
+            print("missing hash name")
+            exit(1)
 
-### view ###
-if args.command[0] == "view":
-    if args.command[1] == "deploys":
-        rows, err = ezo.view_deployments(args.command[2])
+        c = Contract.create_from_hash(args.command[1], ezo)[0]
+        abi = c.abi
+        # print(json.dumps(abi, indent=2))
+        for el in abi:
+            if el["type"] == "event":
+                inputs = el["inputs"]
+                name = inputs["name"]
+                type = inputs["type"]
+
+
+    ### start oracle ###
+    if args.command[0] == "start":
+        if not args.stage:
+            print("target stage not set")
+        ezo.stage = args.stage
+        # pop off 'start'
+        print("starting")
+        args.command.pop(0)
+        if not args.command:
+            print("missing contract hash.")
+            print("correct syntax is: start <contract_hash1>, [contract_hash2]...[contract_hash_n]")
+            exit(1)
+
+        _, err = ezo.dial()
         if err:
-            print("error: view deploys: {}".format(err))
-        display_deployment_rows(rows)
+            print("dial error: {}".format(err))
+            exit(1)
 
-    elif args.command[1] == "contracts":
-        rows, err = ezo.view_contracts(args.command[2])
+        res, err = ezo.start(args.command)
         if err:
-            print("error: view contracts: {}".format(err))
-        display_contract_rows(rows)
+            print("error: {}".format(err))
+        else:
+            print("result: {}".format(res))
 
-    elif args.command[1] == "source":
-        ezo.view_source(args.command[2])
-    else:
-        print("view command requires more specifics.  follow command with one of <deploys|contracts|source>")
-        exit(1)
-
-
-### generate handler scaffold ###
-if args.command[0] == "gen":
-
-    # get the abi of the contract from it's hash
-    c = Contract.load_from_hash(args.command[1], ezo)[0]
-    abi = c.abi
-    # print(json.dumps(abi, indent=2))
-    for el in abi:
-        if el["type"] == "event":
-            inputs = el["inputs"]
-            name = inputs["name"]
-            type = inputs["type"]
-
-
-### start oracle ###
-if args.command[0] == "start":
-    oracle = Oracle(ezo)
-    oracle.start()
-
-
-
-
+main()
