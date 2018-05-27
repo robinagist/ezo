@@ -70,7 +70,7 @@ def main():
             exit(2)
 
         print("deploying contract {} to {}".format(args.command[1], args.stage))
-        ezo.stage = args.stage
+        ezo.target = args.stage
 
         _, err = ezo.dial()
         if err:
@@ -86,10 +86,10 @@ def main():
         # deploy the contract
         addr, err = c.deploy()
         if err:
-            print("error deploying contract {} to {}".format(c.hash, ezo.stage))
+            print("error deploying contract {} to {}".format(c.hash, ezo.target))
             print("message: {}".format(err))
             exit(1)
-        print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.stage, addr ))
+        print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr))
         exit(0)
 
     ### view ###
@@ -137,7 +137,7 @@ def main():
     if args.command[0] == "start":
         if not args.stage:
             print("target stage not set")
-        ezo.stage = args.stage
+        ezo.target = args.stage
         # pop off 'start'
         print("starting")
         args.command.pop(0)

@@ -18,7 +18,9 @@ from multiprocessing import Process
 async def event_loop(event_filter, interval=1):
     while True:
         for event in event_filter.get_new_entries():
+            print("got an event: {}".format(event))
             handle_event(event)
+        print("in event loop")
         await asyncio.sleep(interval)
 
 
@@ -36,15 +38,14 @@ class EZO:
     db = None
     client = None
     config = None
-    stage = None
+    target = None
 
     _listeners = dict()
 
     def __init__(self, configfile):
-        self.config, err = load_configuration(configfile)
-        if err:
-            print("error loading configuration: {}".format(err))
-            exit(1)
+        self.config = configfile
+        self.connect()
+
 
     def dial(self, url=None):
         '''
@@ -55,7 +56,7 @@ class EZO:
         :returns: provider, error
         '''
         if not url:
-            url = get_url(self.config, self.stage)
+            url = get_url(self.config, self.target)
 
         try:
             if url.startswith('ws'):
@@ -141,9 +142,9 @@ class EZO:
 
             address = Contract.get_address(hash, self)
             if not address:
-                return None, "error: no deployment address for {} on target stage {}".format(hash, self.stage)
+                return None, "error: no deployment address for {} on target stage {}".format(hash, self.target)
 
-            p = Process(target=c.listen, args=())
+            p = Process(target=c.listen, args=(address,))
             p.daemon = True
             jobs.append(p)
             p.start()
@@ -168,7 +169,6 @@ class Contract:
         self.name = name
         self._ezo = ezo
         self.timestamp = datetime.utcnow()
-        self.handler_dir = self._ezo.config["handler-dir"]
 
 
     def deploy(self):
@@ -179,7 +179,7 @@ class Contract:
         :return: address, err
         '''
 
-        account = get_account(self._ezo.config, self._ezo.stage)
+        account = get_account(self._ezo.config, self._ezo.target)
         try:
             deployments = self._ezo.db["deployments"]
         except Exception as e:
@@ -201,7 +201,7 @@ class Contract:
         d["hash"] = self.hash
         d["tx-hash"] = tx_hash
         d["address"] = address
-        d["stage"] = self._ezo.stage
+        d["target"] = self._ezo.target
         d["timestamp"] = datetime.utcnow()
 
         # save the deployment information
@@ -219,8 +219,10 @@ class Contract:
         :return:
         '''
 
-        self.event_filter = self._ezo.w3.eth.filter({"address": address})
-
+        print("address>> : {}".format(address))
+#        self.event_filter = self._ezo.w3.eth.filter({"address": address})
+        esh = self._ezo.w3.sha3(text="TempRequest(uint32)").hex()
+        self.event_filter = self._ezo.w3.eth.filter({"address": address, "topics": []})
         loop = asyncio.get_event_loop()
         try:
             loop.run_until_complete(asyncio.gather(event_loop(self.event_filter)))
@@ -326,9 +328,9 @@ class Contract:
         :param hash: the contract file hash
         :return: (string) address of the contract
         '''
-        stage = ezo.stage
+        target = ezo.target
         try:
-            address = ezo.db.deployments.find_one({"hash": hash, "stage": stage})
+            address = ezo.db.deployments.find_one({"hash": hash, "target": target})
         except Exception as e:
             return None, e
         return address["address"] if "address" in address else None
