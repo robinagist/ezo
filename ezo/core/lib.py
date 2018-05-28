@@ -6,13 +6,11 @@ library for ezo
 
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
-from helpers import get_url, get_hash, get_account
-from utils import load_configuration
+from core.helpers import get_url, get_hash, get_account
 import pymongo
 from datetime import datetime
 import asyncio
 from multiprocessing import Process
-
 
 
 async def event_loop(event_filter, interval=1):
@@ -42,8 +40,10 @@ class EZO:
 
     _listeners = dict()
 
-    def __init__(self, configfile):
-        self.config = configfile
+    def __init__(self, config, w3=False):
+        self.config = config
+        if w3:
+            self.dial()
         self.connect()
 
 
@@ -89,7 +89,7 @@ class EZO:
         return self.db, None
 
 
-    def view_deployments(self, terms=None):
+    def view_deployments(self):
         deploys = list()
         try:
             for deploy in self.db.deployments.find({}).sort('timestamp', pymongo.DESCENDING):
@@ -98,7 +98,7 @@ class EZO:
             return None, e
         return deploys, None
 
-    def view_contracts(self, terms):
+    def view_contracts(self):
         contracts = list()
         try:
             for contract in self.db.contracts.find({}).sort('timestamp', pymongo.DESCENDING):
@@ -219,7 +219,7 @@ class Contract:
         :return:
         '''
 
-        print("address>> : {}".format(address))
+#        print("address>> : {}".format(address))
 #        self.event_filter = self._ezo.w3.eth.filter({"address": address})
         esh = self._ezo.w3.sha3(text="TempRequest(uint32)").hex()
         self.event_filter = self._ezo.w3.eth.filter({"address": address, "topics": []})

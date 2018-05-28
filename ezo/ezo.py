@@ -1,51 +1,55 @@
-'''
-ezo - easy Ethereum oracle builder
+VERSION = '0.0.1'
+BANNER = '''
+ezo - easy Ethereum oracle builder v%s
 (c) 2018 - Robin A. Gist - All Rights Reserved
-This code is released under the MIT License
+released under the MIT license
+use at your own risk
+''' % VERSION
 
-USE AT YOUR OWN RISK
-
-'''
-import argparse
-from helpers import get_contract_path, display_deployment_rows, display_contract_rows
-from utils import initialize, EZOCommandProcessor
-from lib import EZO, Contract
-import sys
-
-### TODO - REFACTOR THIS ENTIRE SCRIPT after settling on MVP release functionality
+from cement.core.foundation import CementApp
+from cement.core.controller import CementBaseController, expose
+from cement.core.exc import FrameworkError, CaughtSignal
+from core.helpers import display_contract_rows, display_deployment_rows
+from core.lib import Contract, EZO
+from core.helpers import get_contract_path
 
 
-def main():
-    args = EZOCommandProcessor(sys.argv).args
+class EZOBaseController(CementBaseController):
+    class Meta:
+        label = 'base'
+        description = 'ezo - easy Ethereum oracles'
+        arguments = [
+            (['-t', '--target'],
+             dict(action='store', help='deployment target node (set in configuration')),
+            (['-c', '--config'],
+             dict(action='store', help='optional full path to ezo configuration file', default='config.json')),
+            (['extra_args'],
+             dict(action='store', nargs='*'))
+        ]
 
-    ### initialize a new project ###
-    if args.command[0] == 'create':
-        initialize()
-        print("new ezo project initialized")
-        exit()
+    @expose(help="create a new ezo project in the current director")
+    def create(self):
+        self.app.log.info("initalizing new project")
 
-    # start ezo
-    ezo = EZO(args.configfile)
+    @expose(help="compile smart contracts")
+    def compile(self):
+        ezo = self.app.ezo
 
-    # connect to mongo
-    _, err = ezo.connect()
-    if err:
-        print("db connect error: {}".format(err))
-        exit(1)
+        self.app.log.info("compiling")
 
-    ### compile ###
-    if args.command[0] == 'compile':
-        # single file in contracts directory
-        print("compiling contracts")
-        if args.command[1]:
-            filename = get_contract_path(ezo.config, args.command[1])
+        for filename in self.app.pargs.extra_args:
+            print("compiling contracts")
+
+            filename = get_contract_path(self.app.config, filename)
             contracts_source, err = Contract.load(filename)
             if err:
                 print("error loading contracts file: {}".format(err))
+                exit(1)
 
             contracts, err = Contract.compile(contracts_source, ezo)
             if err:
                 print("error compiling contracts source: {}".format(err))
+                exit(1)
 
             # persist the compiled contract
             for contract in contracts:
@@ -53,108 +57,159 @@ def main():
                 iid, err = contract.save()
                 if err:
                     print("error while persisting Contract to datastore: {}".format(err))
+                    exit(2)
                 else:
                     print("id saved: {}".format(iid))
-
             exit(0)
 
-        else:
-            print("please supply a source file")
-            exit(2)
+    @expose(help="deploy smart contracts")
+    def deploy(self):
 
-    ### deploy ###
-    if args.command[0] == "deploy":
-        # stage must be set before deploying
-        if not args.stage:
-            print("target stage must be set with the -s option before deploying")
-            exit(2)
+        ezo = self.app.ezo
+        log = self.app.log
 
-        print("deploying contract {} to {}".format(args.command[1], args.stage))
-        ezo.target = args.stage
+        log.debug("deploying")
+
+        if not self.app.pargs.target:
+            log.error("target must be set with the -t option before deploying")
+            exit(1)
+
+        ezo.target = self.app.pargs.target
 
         _, err = ezo.dial()
         if err:
-            print("dial error: {}".format(err))
-            exit(1)
+            log.error("unable to dial web node")
+            log.error("error: {}".format(err))
+            exit(2)
 
-        # get the compiled contract proxy by it's source hash
-        c, err = Contract.create_from_hash(args.command[1], ezo)
-        if err:
-            print("error loading contract from storage: {}".format(err))
-            exit(1)
+        for h in self.app.pargs.extra_args:
+            log.info("deploying contract {} to {}".format(h, ezo.target))
 
-        # deploy the contract
-        addr, err = c.deploy()
-        if err:
-            print("error deploying contract {} to {}".format(c.hash, ezo.target))
-            print("message: {}".format(err))
-            exit(1)
-        print("deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr))
+            # get the compiled contract proxy by it's source hash
+            c, err = Contract.create_from_hash(h, ezo)
+            if err:
+                log.error("error loading contract from storage: {}".format(err))
+                exit(2)
+
+            # deploy the contract
+            addr, err = c.deploy()
+            if err:
+                log.error("error deploying contract {} to {}".format(c.hash, ezo.target))
+                log.error("message: {}".format(err))
+                exit(2)
+
+            log.info("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr))
+
         exit(0)
 
-    ### view ###
-    if args.command[0] == "view":
-        if args.command[1] == "deploys":
-            rows, err = ezo.view_deployments(args.command[2])
+
+    @expose(help="view contracts and deployments")
+    def view(self):
+
+        ezo = self.app.ezo
+        log = self.app.log
+
+        args = self.app.pargs.extra_args
+        if len(args) < 1:
+            log.error("missing parameter <deploys|contracts|source>")
+            exit(1)
+
+        cmd = args.pop() if args else None
+        param = args.pop() if args else "all"
+        if cmd == "deploys":
+            rows, err = ezo.view_deployments(param)
             if err:
-                print("error: view deploys: {}".format(err))
+                log.error("view deploys: {}".format(err))
+                exit(2)
             display_deployment_rows(rows)
 
-        elif args.command[1] == "contracts":
-            rows, err = ezo.view_contracts(args.command[2])
+        elif cmd == "contracts":
+            rows, err = ezo.view_contracts(param)
             if err:
-                print("error: view contracts: {}".format(err))
+                log.error("view contracts: {}".format(err))
             display_contract_rows(rows)
 
-        elif args.command[1] == "source":
-            ezo.view_source(args.command[2])
+        elif cmd == "source":
+            ezo.view_source(param)
         else:
-            print("view command requires more specifics.  follow command with one of <deploys|contracts|source>")
+            print("follow command with one of <deploys|contracts|source>")
             exit(1)
 
+    @expose(help="delete contracts or deployments")
+    def delete(self):
+        self.app.log.info("delete contracts/deployments")
 
-    ### generate ###
-    ### scaffold <filehash> - generate handler scaffolding for the compiled contract
-    ### account <network> - create a new account for the target network
-    if args.command[0] == "gen":
+    @expose(help="start ezo")
+    def start(self):
 
-        # get the abi of the contract from it's hash
-        if not len(args.command) > 1:
-            print("missing hash name")
-            exit(1)
+        log = self.app.log
+        ezo = self.app.ezo
 
-        c = Contract.create_from_hash(args.command[1], ezo)[0]
-        abi = c.abi
-        # print(json.dumps(abi, indent=2))
-        for el in abi:
-            if el["type"] == "event":
-                inputs = el["inputs"]
-                name = inputs["name"]
-                type = inputs["type"]
-
-
-    ### start oracle ###
-    if args.command[0] == "start":
-        if not args.stage:
-            print("target stage not set")
-        ezo.target = args.stage
-        # pop off 'start'
-        print("starting")
-        args.command.pop(0)
-        if not args.command:
-            print("missing contract hash.")
-            print("correct syntax is: start <contract_hash1>, [contract_hash2]...[contract_hash_n]")
-            exit(1)
-
+        log.debug("starting ezo")
+        if not self.app.pargs.target:
+            log.error("target must be set with the -t option before deploying")
+            exit(2)
+        ezo.target = self.app.pargs.target
         _, err = ezo.dial()
         if err:
-            print("dial error: {}".format(err))
+            log.error("error with web3 node: {}".format(err))
             exit(1)
 
-        res, err = ezo.start(args.command)
+        if not self.app.pargs.extra_args:
+            log.error("missing contract hash.")
+            log.error("correct syntax is: start <contract_hash1>, [contract_hash2]...[contract_hash_n]")
+            exit(1)
+
+        res, err = ezo.start(self.app.pargs.extra_args)
         if err:
             print("error: {}".format(err))
         else:
             print("result: {}".format(res))
 
-main()
+
+class EZOApp(CementApp):
+    ezo = None
+
+    class Meta:
+        label = "ezo"
+        base_controller = "base"
+        extensions = ['json_configobj']
+        config_handler = 'json_configobj'
+        config_files = ['~/PycharmProjects/ezo/config.json']
+        handlers = [EZOBaseController]
+
+
+def main():
+    with EZOApp() as app:
+        app.ezo = EZO(app.config["ezo"])
+        try:
+            app.run()
+
+        except CaughtSignal as e:
+            # determine what the signal is, and do something with it?
+            from signal import SIGINT, SIGABRT
+
+            if e.signum == SIGINT:
+                # do something... maybe change the exit code?
+                app.exit_code = 110
+            elif e.signum == SIGABRT:
+                # do something else...
+                app.exit_code = 111
+
+        except FrameworkError as e:
+            # do something when a framework error happens
+            print("FrameworkError => %s" % e)
+
+            # and maybe set the exit code to something unique as well
+            app.exit_code = 300
+
+        finally:
+            # Maybe we want to see a full-stack trace for the above
+            # exceptions, but only if --debug was passed?
+            if app.debug:
+                import traceback
+                traceback.print_exc()
+
+
+if __name__ == '__main__':
+    main()
