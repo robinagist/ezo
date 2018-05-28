@@ -31,8 +31,6 @@ def get_hash(str):
     return xxhash.xxh64(bs).hexdigest()
 
 
-# db-related - move to helper
-
 def display_deployment_rows(rows):
     for row in rows:
         print("{} - {} - {} - {} - {}".format(row["contact-name"], row["hash"], row["address"], row["target"], row["timestamp"]))
