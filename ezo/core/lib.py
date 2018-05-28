@@ -341,6 +341,21 @@ class Contract:
 
 
 
+class DB:
+    '''
+    data storage abstraction layer
+    serializes/unserializes contract and deployment data
+    '''
 
+    def __init__(self):
+        pass
 
+    def save(self, storage_type, key, values ):
+        pass
+
+    def load(self, storage_type, key):
+        pass
+
+    def delete(self, storage_type, key):
+        pass
 
