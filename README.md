@@ -7,7 +7,7 @@ ezo allows for multiple deployment stages (or targets).  Start out testing with 
 
 Compiled contract and deployment state is currently maintained in Mongo.
 
-# this repo is in-progress - check back daily for updates and refactors ###
+# this repo is in-progress - ###
 
 Initial Installation
 `ezo create` 
