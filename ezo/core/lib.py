@@ -32,12 +32,6 @@ class EZO:
 
     '''
 
-    w3 = None
-    db = None
-    client = None
-    config = None
-    target = None
-
     _listeners = dict()
 
     def __init__(self, config, w3=False):
@@ -152,18 +146,9 @@ class EZO:
         for pr in jobs:
             pr.join()
 
+
 class Contract:
 
-    abi = None
-    bin = None
-    name = None
-    source = None
-    hash = None
-    timestamp = None
-    _ezo = None
-    event_filter = None
-    handler_dir = None
-    deployments = None
 
     def __init__(self, name, ezo):
         self.name = name
@@ -218,20 +203,18 @@ class Contract:
         starts event listener for the contract
         :return:
         '''
+        address = "0x8cdaf0cd259887258bc13a92c0a6da92698644c0"
+        print("listening to address: {}".format(address))
 
-#        print("address>> : {}".format(address))
-#        self.event_filter = self._ezo.w3.eth.filter({"address": address})
-        esh = self._ezo.w3.sha3(text="TempRequest(uint32)").hex()
-        self.event_filter = self._ezo.w3.eth.filter({"address": address, "topics": []})
+        event_filter = self._ezo.w3.eth.filter({"address": address, "toBlock": "latest"})
         loop = asyncio.get_event_loop()
         try:
-            loop.run_until_complete(asyncio.gather(event_loop(self.event_filter)))
+            loop.run_until_complete(asyncio.gather(event_loop(event_filter)))
         except Exception as e:
             return None, e
 
         finally:
             loop.close()
-
 
 
     # saves the compiled contract essentials to mongo
@@ -255,8 +238,11 @@ class Contract:
             return None, e
         return iid, None
 
-    @classmethod
-    def create_from_hash(cls, hash, ezo):
+    # get the
+
+
+    @staticmethod
+    def create_from_hash(hash, ezo):
         '''
         given the hash of a contract, returns a contract  from the data store
         :param hash: (string) hash of the contract source code
@@ -280,8 +266,8 @@ class Contract:
 
 
 
-    @classmethod
-    def load(cls, filepath):
+    @staticmethod
+    def load(filepath):
         '''
         loads a contract file
 
@@ -297,8 +283,8 @@ class Contract:
         return source, None
 
 
-    @classmethod
-    def compile(cls, source, ezo):
+    @staticmethod
+    def compile(source, ezo):
         '''
         compiles the source code
 
@@ -320,8 +306,8 @@ class Contract:
             return None, e
         return compiled_list, None
 
-    @classmethod
-    def get_address(cls, hash, ezo):
+    @staticmethod
+    def get_address(hash, ezo):
         '''
         fetches the contract address of deployment
 
@@ -336,26 +322,48 @@ class Contract:
         return address["address"] if "address" in address else None
 
 
-
-
-
-
-
 class DB:
     '''
     data storage abstraction layer
     serializes/unserializes contract and deployment data
+
     '''
 
+    _cache = dict()
+    _db = None
+
     def __init__(self):
+        if not DB._db:
+            
         pass
 
-    def save(self, storage_type, key, values ):
+    def save(self, storage_type, key, value):
+        if not isinstance(storage_type, str):
+            return None, "storage_type must be a string"
+        if not isinstance(key, str):
+            return None, "key must be a string"
+
+        pkey = DB.pkey(storage_type, key)
+
+
+        # pickle value
+        b_val = pickle.dumps(value)
+
+        # store in leveldb
+
+
+
+    def replace(self, storage_type, key, value):
         pass
+
 
     def load(self, storage_type, key):
         pass
 
     def delete(self, storage_type, key):
         pass
+
+    @staticmethod
+    def pkey(storage_type, key):
+        return "{}__{}".format(storage_type, key)
 
