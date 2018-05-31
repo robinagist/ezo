@@ -20,6 +20,8 @@ class EZOBaseController(CementBaseController):
         arguments = [
             (['-t', '--target'],
              dict(action='store', help='deployment target node (set in configuration')),
+            (['--overwrite'],
+             dict(action='store_true', help="force overwriting of existing state")),
             (['extra_args'],
              dict(action='store', nargs='*'))
         ]
@@ -90,7 +92,8 @@ class EZOBaseController(CementBaseController):
                 exit(2)
 
             # deploy the contract
-            addr, err = c.deploy()
+
+            addr, err = c.deploy(overwrite=self.app.pargs.overwrite)
             if err:
                 log.error("error deploying contract {} to {}".format(c.hash, ezo.target))
                 log.error("message: {}".format(err))

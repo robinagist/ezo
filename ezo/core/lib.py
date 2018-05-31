@@ -36,16 +36,12 @@ class EZO:
     _listeners = dict()
     db = None
 
-
     def __init__(self, config, w3=False):
         self.config = config
+        self.target = None
         EZO.db = DB()
         if w3:
             self.dial()
-
- #       self.connect()
-
-
 
     def dial(self, url=None):
         '''
@@ -68,25 +64,6 @@ class EZO:
             return None, e
 
         return self.w3, None
-
-    def connect(self, url=None):
-        '''
-        connects to MongoDB instance
-
-        :param url: (string) full URL for the mongo instance
-        :return: database handle, error
-        '''
-
-        if not url:
-            url = self.config["database"]["url"]
-        name = self.config["database"]["name"]
-
-        try:
-            self.client = pymongo.MongoClient(url)
-            self.db = self.client[name]
-        except Exception as e:
-            return None, e
-        return self.db, None
 
 
     def view_deployments(self):
@@ -111,12 +88,6 @@ class EZO:
         pass
 
 
-    def close(self):
-        '''
-        close mongo and web3 connections
-        :return: None
-        '''
-        self.client.close()
 
 
     def start(self, contract_hashes):
@@ -166,7 +137,7 @@ class Contract:
         self.source = None
 
 
-    def deploy(self):
+    def deploy(self, overwrite=False):
         '''
         deploy this contract
         :param w3: network targeted for deployment
@@ -175,10 +146,6 @@ class Contract:
         '''
 
         account = get_account(self._ezo.config, self._ezo.target)
- #       try:
- #           deployments = self._ezo.db["deployments"]
- ##       except Exception as e:
-  #          return None, e
 
         try:
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
@@ -201,8 +168,10 @@ class Contract:
 
         # save the deployment information
         try:
-            obj = pickle.dumps(d)
-            res = self._ezo.db.save("deploys", self.hash, obj)
+ #           obj = pickle.dumps(d)
+            _, err = self._ezo.db.save(self._ezo.target, self.hash, d, overwrite=overwrite)
+            if err:
+                return None, err
         except Exception as e:
             return None, e
         return address, None
@@ -213,7 +182,7 @@ class Contract:
         starts event listener for the contract
         :return:
         '''
-        address = "0x8cdaf0cd259887258bc13a92c0a6da92698644c0"
+#        address = "0x8cdaf0cd259887258bc13a92c0a6da92698644c0"
         print("listening to address: {}".format(address))
 
         event_filter = self._ezo.w3.eth.filter({"address": address, "toBlock": "latest"})
@@ -226,13 +195,7 @@ class Contract:
         finally:
             loop.close()
 
-
-    # saves the compiled contract essentials to mongo
-    def save(self):
- #       try:
- #           contract_collection = self._ezo.db["contracts"]
- #       except Exception as e:
- #           return None, e
+    def save(self, overwrite=False):
 
         c = dict()
         c["name"] = self.name
@@ -242,15 +205,7 @@ class Contract:
         c["hash"] = get_hash(self.source)
         c["timestamp"] = self.timestamp
 
-        '''
-        try:
-            iid = contract_collection.insert(c)
-        except Exception as e:
-            return None, e
-        return iid, None
-        '''
-
-        ks, err =  self._ezo.db.save("contracts", c["hash"], c)
+        ks, err =  self._ezo.db.save("contracts", c["hash"], c, overwrite)
         if err:
             return None, err
         return ks, None
@@ -263,10 +218,6 @@ class Contract:
         :param ezo: ezo instance
         :return: contract instance, error
         '''
- #       try:
- #           cp = ezo.db.contracts.find_one({"hash": hash})
- #       except Exception as e:
- #           return None, e
 
         cp, err = ezo.db.find("contracts", hash)
         if err:
@@ -333,34 +284,42 @@ class Contract:
         :return: (string) address of the contract
         '''
         target = ezo.target
-        try:
-            address = ezo.db.deployments.find_one({"hash": hash, "target": target})
-        except Exception as e:
-            return None, e
-        return address["address"] if "address" in address else None
+        address, err = ezo.db.find(target, hash)
+        if err:
+            return None, err
+        return address['address'].lower()
 
 
 class DB:
     '''
-    data storage abstraction layer
+    data storage abstraction layer for LevelDB
 
     '''
+
+    db = None
 
     def __init__(self, dbpath=None):
         if not dbpath:
             dbpath = '/tmp/ezodba/'
-        self.db = plyvel.DB(dbpath, create_if_missing=True)
+        DB.db = plyvel.DB(dbpath, create_if_missing=True)
 
-    def save(self, storage_type, key, value, replace=True):
+    def save(self, storage_type, key, value, overwrite=False, serialize=True):
         if not isinstance(storage_type, str):
             return None, "storage_type must be a string"
         if not isinstance(key, str):
             return None, "key must be a string"
 
-        pkey = DB.pkey(storage_type, key)
-        b_val = pickle.dumps(value)
+        if not overwrite:
+            a, err = self.find(storage_type, key)
+            if err:
+                return None, err
+            if a:
+                return None, "entry for {} in {} already exists ".format(key, storage_type)
+
+        if serialize:
+            value = pickle.dumps(value)
         try:
-            self.db.put(pkey, b_val)
+            DB.db.put(DB.pkey(storage_type, key), value)
         except Exception as e:
             return None, e
         return key, None
@@ -368,18 +327,30 @@ class DB:
     def delete(self, storage_type, key):
         pass
 
-    def find(self, storage_type, key):
+    def find(self, storage_type, key, deserialize=True):
         try:
-            it = self.db.iterator()
+            it = DB.db.iterator()
             it.seek_to_start()
             pkey = DB.pkey(storage_type, key)
+            print("pkey: {}".format(pkey))
             it.seek(pkey)
             val = next(it)
+            if not val:
+                return None, None
             # val is a tuple -- (key, val) - you want the val
-            obj = pickle.loads(val[1])
+            if deserialize:
+                obj = pickle.loads(val[1])
+            else:
+                obj = val[1]
+
+        except StopIteration as e:
+            return None, None
         except Exception as e:
             return None, e
         return obj, None
+
+    def close(self):
+        DB.db.close()
 
     @staticmethod
     def pkey(storage_type, key):
