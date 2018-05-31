@@ -11,6 +11,7 @@ import pymongo
 from datetime import datetime
 import asyncio
 from multiprocessing import Process
+import plyvel, pickle
 
 
 async def event_loop(event_filter, interval=1):
@@ -33,12 +34,17 @@ class EZO:
     '''
 
     _listeners = dict()
+    db = None
+
 
     def __init__(self, config, w3=False):
         self.config = config
+        EZO.db = DB()
         if w3:
             self.dial()
-        self.connect()
+
+ #       self.connect()
+
 
 
     def dial(self, url=None):
@@ -154,6 +160,10 @@ class Contract:
         self.name = name
         self._ezo = ezo
         self.timestamp = datetime.utcnow()
+        self.hash = None
+        self.abi  = None
+        self.bin  = None
+        self.source = None
 
 
     def deploy(self):
@@ -165,10 +175,10 @@ class Contract:
         '''
 
         account = get_account(self._ezo.config, self._ezo.target)
-        try:
-            deployments = self._ezo.db["deployments"]
-        except Exception as e:
-            return None, e
+ #       try:
+ #           deployments = self._ezo.db["deployments"]
+ ##       except Exception as e:
+  #          return None, e
 
         try:
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
@@ -191,8 +201,8 @@ class Contract:
 
         # save the deployment information
         try:
-            iid = deployments.insert(d)
-
+            obj = pickle.dumps(d)
+            res = self._ezo.db.save("deploys", self.hash, obj)
         except Exception as e:
             return None, e
         return address, None
@@ -219,10 +229,10 @@ class Contract:
 
     # saves the compiled contract essentials to mongo
     def save(self):
-        try:
-            contract_collection = self._ezo.db["contracts"]
-        except Exception as e:
-            return None, e
+ #       try:
+ #           contract_collection = self._ezo.db["contracts"]
+ #       except Exception as e:
+ #           return None, e
 
         c = dict()
         c["name"] = self.name
@@ -232,14 +242,18 @@ class Contract:
         c["hash"] = get_hash(self.source)
         c["timestamp"] = self.timestamp
 
+        '''
         try:
             iid = contract_collection.insert(c)
         except Exception as e:
             return None, e
         return iid, None
+        '''
 
-    # get the
-
+        ks, err =  self._ezo.db.save("contracts", c["hash"], c)
+        if err:
+            return None, err
+        return ks, None
 
     @staticmethod
     def create_from_hash(hash, ezo):
@@ -249,10 +263,14 @@ class Contract:
         :param ezo: ezo instance
         :return: contract instance, error
         '''
-        try:
-            cp = ezo.db.contracts.find_one({"hash": hash})
-        except Exception as e:
-            return None, e
+ #       try:
+ #           cp = ezo.db.contracts.find_one({"hash": hash})
+ #       except Exception as e:
+ #           return None, e
+
+        cp, err = ezo.db.find("contracts", hash)
+        if err:
+            return None, err
 
         # create a new Contract
         c = Contract(cp["name"], ezo)
@@ -325,45 +343,45 @@ class Contract:
 class DB:
     '''
     data storage abstraction layer
-    serializes/unserializes contract and deployment data
 
     '''
 
-    _cache = dict()
-    _db = None
+    def __init__(self, dbpath=None):
+        if not dbpath:
+            dbpath = '/tmp/ezodba/'
+        self.db = plyvel.DB(dbpath, create_if_missing=True)
 
-    def __init__(self):
-        if not DB._db:
-            
-        pass
-
-    def save(self, storage_type, key, value):
+    def save(self, storage_type, key, value, replace=True):
         if not isinstance(storage_type, str):
             return None, "storage_type must be a string"
         if not isinstance(key, str):
             return None, "key must be a string"
 
         pkey = DB.pkey(storage_type, key)
-
-
-        # pickle value
         b_val = pickle.dumps(value)
-
-        # store in leveldb
-
-
-
-    def replace(self, storage_type, key, value):
-        pass
-
-
-    def load(self, storage_type, key):
-        pass
+        try:
+            self.db.put(pkey, b_val)
+        except Exception as e:
+            return None, e
+        return key, None
 
     def delete(self, storage_type, key):
         pass
 
+    def find(self, storage_type, key):
+        try:
+            it = self.db.iterator()
+            it.seek_to_start()
+            pkey = DB.pkey(storage_type, key)
+            it.seek(pkey)
+            val = next(it)
+            # val is a tuple -- (key, val) - you want the val
+            obj = pickle.loads(val[1])
+        except Exception as e:
+            return None, e
+        return obj, None
+
     @staticmethod
     def pkey(storage_type, key):
-        return "{}__{}".format(storage_type, key)
+        return bytes("{}__{}".format(storage_type, key), 'utf-8')
 
