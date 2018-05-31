@@ -166,7 +166,6 @@ class EZOBaseController(CementBaseController):
 
 class EZOApp(CementApp):
     ezo = None
-
     class Meta:
         label = "ezo"
         base_controller = "base"
