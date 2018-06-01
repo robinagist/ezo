@@ -10,7 +10,8 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.helpers import display_contract_rows, display_deployment_rows
 from core.lib import Contract
-from core.helpers import get_contract_path, create_ethereum_account
+from core.helpers import get_contract_path
+from core.utils import create_ethereum_account
 
 
 class EZOBaseController(CementBaseController):
@@ -154,9 +155,6 @@ class EZOBaseController(CementBaseController):
 
         if cmd == "account":
             create_ethereum_account()
-
-
-
 
 
     @expose(help="start ezo")

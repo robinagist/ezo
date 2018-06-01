@@ -6,23 +6,14 @@ library for ezo
 
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
-from core.helpers import get_url, get_hash, get_account, create_ethereum_account
+from core.helpers import get_url, get_hash, get_account
+from core.utils import event_loop
 from datetime import datetime
 from multiprocessing import Process
 import plyvel, pickle, asyncio
 
 
-async def event_loop(event_filter, interval=1):
-    while True:
-        for event in event_filter.get_new_entries():
-            print("got an event: {}".format(event))
-            handle_event(event)
-        print("in event loop")
-        await asyncio.sleep(interval)
 
-
-def handle_event(event):
-    print("event: {}".format(event))
 
 
 class EZO:
