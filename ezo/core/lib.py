@@ -6,12 +6,10 @@ library for ezo
 
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
-from core.helpers import get_url, get_hash, get_account
-import pymongo
+from core.helpers import get_url, get_hash, get_account, create_ethereum_account
 from datetime import datetime
-import asyncio
 from multiprocessing import Process
-import plyvel, pickle
+import plyvel, pickle, asyncio
 
 
 async def event_loop(event_filter, interval=1):
@@ -34,11 +32,11 @@ class EZO:
     '''
 
     _listeners = dict()
-    db = None
 
     def __init__(self, config, w3=False):
         self.config = config
         self.target = None
+        self.w3 = None
         EZO.db = DB()
         if w3:
             self.dial()
@@ -68,26 +66,14 @@ class EZO:
 
     def view_deployments(self):
         deploys = list()
-        try:
-            for deploy in self.db.deployments.find({}).sort('timestamp', pymongo.DESCENDING):
-                deploys.append(deploy)
-        except Exception as e:
-            return None, e
-        return deploys, None
+
 
     def view_contracts(self):
         contracts = list()
-        try:
-            for contract in self.db.contracts.find({}).sort('timestamp', pymongo.DESCENDING):
-                contracts.append(contract)
-        except Exception as e:
-            return None, e
-        return contracts, None
+
 
     def view_source(self, hash):
         pass
-
-
 
 
     def start(self, contract_hashes):
@@ -97,7 +83,6 @@ class EZO:
         :return:
         '''
 
-        print("ezo start - hashes: {}".format(contract_hashes))
         if isinstance(contract_hashes, str):
             contract_hashes = [contract_hashes]
 
@@ -106,7 +91,6 @@ class EZO:
 
         jobs = []
         for hash in contract_hashes:
-            print("hash: {}".format(hash))
             c, err = Contract.create_from_hash(hash, self)
             if err:
                 return None, err
@@ -126,7 +110,6 @@ class EZO:
 
 class Contract:
 
-
     def __init__(self, name, ezo):
         self.name = name
         self._ezo = ezo
@@ -136,7 +119,6 @@ class Contract:
         self.bin  = None
         self.source = None
 
-
     def deploy(self, overwrite=False):
         '''
         deploy this contract
@@ -144,6 +126,11 @@ class Contract:
         :param account:  the account address to use
         :return: address, err
         '''
+
+        # see if a deployment already exists for this contract on this target
+        if not overwrite:
+            if self._ezo.db.find(self._ezo.target, self.hash):
+                return None, "deployment on {} already exists for contract {}".format(self._ezo.target, self.hash)
 
         account = get_account(self._ezo.config, self._ezo.target)
 
@@ -168,7 +155,6 @@ class Contract:
 
         # save the deployment information
         try:
- #           obj = pickle.dumps(d)
             _, err = self._ezo.db.save(self._ezo.target, self.hash, d, overwrite=overwrite)
             if err:
                 return None, err
@@ -182,7 +168,7 @@ class Contract:
         starts event listener for the contract
         :return:
         '''
-#        address = "0x8cdaf0cd259887258bc13a92c0a6da92698644c0"
+
         print("listening to address: {}".format(address))
 
         event_filter = self._ezo.w3.eth.filter({"address": address, "toBlock": "latest"})
@@ -332,7 +318,6 @@ class DB:
             it = DB.db.iterator()
             it.seek_to_start()
             pkey = DB.pkey(storage_type, key)
-            print("pkey: {}".format(pkey))
             it.seek(pkey)
             val = next(it)
             if not val:
@@ -343,7 +328,7 @@ class DB:
             else:
                 obj = val[1]
 
-        except StopIteration as e:
+        except StopIteration:
             return None, None
         except Exception as e:
             return None, e
@@ -355,4 +340,10 @@ class DB:
     @staticmethod
     def pkey(storage_type, key):
         return bytes("{}__{}".format(storage_type, key), 'utf-8')
+
+
+
+
+
+
 
