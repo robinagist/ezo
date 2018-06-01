@@ -10,7 +10,7 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.helpers import display_contract_rows, display_deployment_rows
 from core.lib import Contract
-from core.helpers import get_contract_path
+from core.helpers import get_contract_path, create_ethereum_account
 
 
 class EZOBaseController(CementBaseController):
@@ -21,7 +21,7 @@ class EZOBaseController(CementBaseController):
             (['-t', '--target'],
              dict(action='store', help='deployment target node (set in configuration')),
             (['--overwrite'],
-             dict(action='store_true', help="force overwriting of existing state")),
+             dict(action='store_true', help="force overwriting of existing record (contract, deployment)")),
             (['extra_args'],
              dict(action='store', nargs='*'))
         ]
@@ -92,7 +92,6 @@ class EZOBaseController(CementBaseController):
                 exit(2)
 
             # deploy the contract
-
             addr, err = c.deploy(overwrite=self.app.pargs.overwrite)
             if err:
                 log.error("error deploying contract {} to {}".format(c.hash, ezo.target))
@@ -138,6 +137,27 @@ class EZOBaseController(CementBaseController):
     @expose(help="delete contracts or deployments")
     def delete(self):
         self.app.log.info("delete contracts/deployments")
+
+    @expose(help="generate accounts and ezo artifacts")
+    def gen(self):
+        log = self.app.log
+        ezo = self.app.ezo
+        args = self.app.pargs.extra_args
+
+        # TODO - generate subcontroller?
+        # account or handler
+
+        cmd = args.pop() if len(args) > 0 else None
+        if not cmd:
+            print("gen <account|handler>")
+            exit(1)
+
+        if cmd == "account":
+            create_ethereum_account()
+
+
+
+
 
     @expose(help="start ezo")
     def start(self):

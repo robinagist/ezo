@@ -41,3 +41,4 @@ def display_contract_rows(rows):
     for row in rows:
         print("{} - {} - {}".format(row['name'], row['hash'], row['timestamp']))
     print("total contracts: {}".format(len(rows)))
+
