@@ -13,9 +13,6 @@ from multiprocessing import Process
 import plyvel, pickle, asyncio
 
 
-
-
-
 class EZO:
     '''
     Easy Oracle (ezo) base class
@@ -23,6 +20,7 @@ class EZO:
     '''
 
     _listeners = dict()
+    db = None
 
     def __init__(self, config, w3=False):
         self.config = config
@@ -313,7 +311,7 @@ class DB:
             val = next(it)
             if not val:
                 return None, None
-            # val is a tuple -- (key, val) - you want the val
+            # val is a tuple -- (key, value) - you want the value
             if deserialize:
                 obj = pickle.loads(val[1])
             else:
