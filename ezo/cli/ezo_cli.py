@@ -58,7 +58,7 @@ class EZOBaseController(CementBaseController):
             # persist the compiled contract
             for contract in contracts:
                 contract.source = contracts_source
-                iid, err = contract.save()
+                iid, err = contract.save(overwrite=self.app.pargs.overwrite)
                 if err:
                     log.error("error while persisting Contract to datastore: {}".format(err))
                     exit(2)
@@ -71,14 +71,15 @@ class EZOBaseController(CementBaseController):
 
         ezo = self.app.ezo
         log = self.app.log
+        args = self.app.pargs
 
         log.debug("deploying")
 
-        if not self.app.pargs.target:
+        if not args.target:
             log.error("target must be set with the -t option before deploying")
             exit(1)
 
-        ezo.target = self.app.pargs.target
+        ezo.target = args.target
 
         _, err = ezo.dial()
         if err:
@@ -86,7 +87,7 @@ class EZOBaseController(CementBaseController):
             log.error("error: {}".format(err))
             exit(2)
 
-        for h in self.app.pargs.extra_args:
+        for h in args.extra_args:
             log.info("deploying contract {} to {}".format(h, ezo.target))
 
             # get the compiled contract proxy by it's source hash
@@ -148,27 +149,28 @@ class EZOBaseController(CementBaseController):
 
         log = self.app.log
         ezo = self.app.ezo
+        args = self.app.pargs
 
         log.debug("starting ezo")
-        if not self.app.pargs.target:
+        if not args.target:
             log.error("target must be set with the -t option before deploying")
             exit(2)
-        ezo.target = self.app.pargs.target
+        ezo.target = args.target
         _, err = ezo.dial()
         if err:
             log.error("error with web3 node: {}".format(err))
             exit(1)
 
-        if not self.app.pargs.extra_args:
+        if not args.extra_args:
             log.error("missing contract hash.")
             log.error("correct syntax is: start <contract_hash1>, [contract_hash2]...[contract_hash_n]")
             exit(1)
 
-        res, err = ezo.start(self.app.pargs.extra_args)
-        if err:
-            print("error: {}".format(err))
-        else:
-            print("result: {}".format(res))
+        ezo.start(args.extra_args)
+    #    if err:
+    #        print("error: {}".format(err))
+    #    else:
+    #        print("result: {}".format(res))
 
 
 class EZOGeneratorController(CementBaseController):
@@ -179,41 +181,19 @@ class EZOGeneratorController(CementBaseController):
         label = "gen"
         stacked_on = "base"
         stacked_type = "nested"
-        description = "generator controller for handler and accounts"
+        description = "generate accounts and handler scaffolding"
         arguments = []
 
     @expose(help="gen", hide=True)
     def default(self):
-        print("hey")
-
-
-class EZOAccountController(CementBaseController):
-    '''
-    controller to generate and manage accounts
-    '''
-    class Meta:
-        label = "account"
-        stacked_on = "gen"
-        stacked_type = "nested"
-        arguments = []
+        print("command must be followed by 'account' or 'handlers")
 
     @expose(help="generate a new local Ethereum account")
-    def default(self):
+    def account(self):
         create_ethereum_account()
 
-
-class EZOHandlerController(CementBaseController):
-    '''
-    controller to generate event handler code
-    '''
-    class Meta:
-        label = "handlers"
-        stacked_on = "gen"
-        stacked_type = "nested"
-        arguments = []
-
     @expose(help="generate handlers and callback methods")
-    def default(self):
+    def handlers(self):
         print("handlers")
 
 
@@ -227,7 +207,5 @@ class EZOApp(CementApp):
         config_files = ['~/PycharmProjects/ezo/config.json']
         handlers = [
                     EZOBaseController,
-                    EZOGeneratorController,
-                    EZOAccountController,
-                    EZOHandlerController
+                    EZOGeneratorController
                     ]

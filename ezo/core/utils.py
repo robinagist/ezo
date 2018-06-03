@@ -20,7 +20,7 @@ def create_ethereum_account():
     print(ks)
 
 
-async def event_loop(event_filter, interval=1):
+async def event_loop1(event_filter, interval=1):
     while True:
         for event in event_filter.get_new_entries():
             print("got an event: {}".format(event))
