@@ -7,11 +7,12 @@ library for ezo
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account
-from core.utils import event_loop
+from core.utils import handle_event
 from datetime import datetime
+from collections import OrderedDict
 from multiprocessing import Process
 import plyvel, pickle, asyncio
-
+import threading
 
 class EZO:
     '''
@@ -78,26 +79,29 @@ class EZO:
         if not isinstance(contract_hashes, list):
             return None, "error: expecting a string, or a list of contract hashes"
 
-        jobs = []
+        contract_listeners = []
+
         for hash in contract_hashes:
             c, err = Contract.create_from_hash(hash, self)
+            # todo - better way to handle this?
             if err:
                 return None, err
 
-            address = Contract.get_address(hash, self)
-            if not address:
-                return None, "error: no deployment address for {} on target stage {}".format(hash, self.target)
+            address, err = Contract.get_address(hash, self)
+            # TODO - better way to handle this?
+            if err:
+                return None, err
+            contract_listeners.append(c.listen(address))
 
-            p = Process(target=c.listen, args=(address,))
-            p.daemon = True
-            jobs.append(p)
-            p.start()
-
-        for pr in jobs:
-            pr.join()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(
+            asyncio.gather(*contract_listeners)
+        )
 
 
 class Contract:
+
+    mq = OrderedDict()
 
     def __init__(self, name, ezo):
         self.name = name
@@ -152,18 +156,26 @@ class Contract:
         return address, None
 
 
-    def listen(self, address):
+    async def listen(self, address):
         '''
         starts event listener for the contract
         :return:
         '''
 
         print("listening to address: {}".format(address))
+        interval = 1
 
         event_filter = self._ezo.w3.eth.filter({"address": address, "toBlock": "latest"})
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
         try:
-            loop.run_until_complete(asyncio.gather(event_loop(event_filter)))
+            while True:
+                for event in event_filter.get_new_entries():
+                    print("got an event: {}".format(event))
+
+                    #write event to queue
+                    handle_event(event)
+                print("in event loop")
+                await asyncio.sleep(interval)
         except Exception as e:
             return None, e
 
@@ -180,7 +192,7 @@ class Contract:
         c["hash"] = get_hash(self.source)
         c["timestamp"] = self.timestamp
 
-        ks, err =  self._ezo.db.save("contracts", c["hash"], c, overwrite)
+        ks, err =  self._ezo.db.save("contracts", c["hash"], c, overwrite=overwrite)
         if err:
             return None, err
         return ks, None
@@ -257,12 +269,13 @@ class Contract:
 
         :param hash: the contract file hash
         :return: (string) address of the contract
+                 error, if any
         '''
         target = ezo.target
         address, err = ezo.db.find(target, hash)
         if err:
             return None, err
-        return address['address'].lower()
+        return address['address'].lower(), None
 
 
 class DB:
@@ -304,16 +317,14 @@ class DB:
 
     def find(self, storage_type, key, deserialize=True):
         try:
-            it = DB.db.iterator()
-            it.seek_to_start()
+
             pkey = DB.pkey(storage_type, key)
-            it.seek(pkey)
-            val = next(it)
+            val = DB.db.get(pkey)
             if not val:
                 return None, None
             # val is a tuple -- (key, value) - you want the value
             if deserialize:
-                obj = pickle.loads(val[1])
+                obj = pickle.loads(val)
             else:
                 obj = val[1]
 
@@ -329,6 +340,29 @@ class DB:
     @staticmethod
     def pkey(storage_type, key):
         return bytes("{}__{}".format(storage_type, key), 'utf-8')
+
+
+class ContractEventQueue:
+    '''
+    message queue like class for managing received ethereum contract events
+
+    '''
+
+    def __init__(self, contract_event):
+        self._eq = OrderedDict
+
+        pass
+
+    def find(self):
+        pass
+
+    def save(self):
+        pass
+
+
+
+
+
 
 
 

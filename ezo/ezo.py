@@ -24,9 +24,11 @@ def main():
 
             if e.signum == SIGINT:
                 # do something... maybe change the exit code?
+                print("exiting...1")
                 app.exit_code = 110
             elif e.signum == SIGABRT:
                 # do something else...
+                print("exiting...")
                 app.exit_code = 111
 
         except FrameworkError as e:
