@@ -10,10 +10,14 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.helpers import display_contract_rows, display_deployment_rows
 from core.lib import Contract
-from core.helpers import get_contract_path, create_ethereum_account
+from core.helpers import get_contract_path
+from core.utils import create_ethereum_account
 
 
 class EZOBaseController(CementBaseController):
+    '''
+    base controller for ezo
+    '''
     class Meta:
         label = 'base'
         description = 'ezo - easy Ethereum oracles'
@@ -138,26 +142,6 @@ class EZOBaseController(CementBaseController):
     def delete(self):
         self.app.log.info("delete contracts/deployments")
 
-    @expose(help="generate accounts and ezo artifacts")
-    def gen(self):
-        log = self.app.log
-        ezo = self.app.ezo
-        args = self.app.pargs.extra_args
-
-        # TODO - generate subcontroller?
-        # account or handler
-
-        cmd = args.pop() if len(args) > 0 else None
-        if not cmd:
-            print("gen <account|handler>")
-            exit(1)
-
-        if cmd == "account":
-            create_ethereum_account()
-
-
-
-
 
     @expose(help="start ezo")
     def start(self):
@@ -187,6 +171,52 @@ class EZOBaseController(CementBaseController):
             print("result: {}".format(res))
 
 
+class EZOGeneratorController(CementBaseController):
+    '''
+    parent controller for all things to be generated, such as accounts and code
+    '''
+    class Meta:
+        label = "gen"
+        stacked_on = "base"
+        stacked_type = "nested"
+        description = "generator controller for handler and accounts"
+        arguments = []
+
+    @expose(help="gen", hide=True)
+    def default(self):
+        print("hey")
+
+
+class EZOAccountController(CementBaseController):
+    '''
+    controller to generate and manage accounts
+    '''
+    class Meta:
+        label = "account"
+        stacked_on = "gen"
+        stacked_type = "nested"
+        arguments = []
+
+    @expose(help="generate a new local Ethereum account")
+    def default(self):
+        create_ethereum_account()
+
+
+class EZOHandlerController(CementBaseController):
+    '''
+    controller to generate event handler code
+    '''
+    class Meta:
+        label = "handlers"
+        stacked_on = "gen"
+        stacked_type = "nested"
+        arguments = []
+
+    @expose(help="generate handlers and callback methods")
+    def default(self):
+        print("handlers")
+
+
 class EZOApp(CementApp):
     ezo = None
     class Meta:
@@ -195,4 +225,9 @@ class EZOApp(CementApp):
         extensions = ['json_configobj']
         config_handler = 'json_configobj'
         config_files = ['~/PycharmProjects/ezo/config.json']
-        handlers = [EZOBaseController]
+        handlers = [
+                    EZOBaseController,
+                    EZOGeneratorController,
+                    EZOAccountController,
+                    EZOHandlerController
+                    ]
