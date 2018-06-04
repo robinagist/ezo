@@ -11,7 +11,7 @@ from core.utils import handle_event
 from datetime import datetime
 from collections import OrderedDict
 from multiprocessing import Process
-import plyvel, pickle, asyncio
+import plyvel, pickle, asyncio, xxhash, time
 import threading
 
 class EZO:
@@ -28,6 +28,7 @@ class EZO:
         self.target = None
         self.w3 = None
         EZO.db = DB()
+        self.event_queue = ContractEventQueue(EZO.db)
         if w3:
             self.dial()
 
@@ -173,7 +174,10 @@ class Contract:
                     print("got an event: {}".format(event))
 
                     #write event to queue
-                    handle_event(event)
+                    _, err = self._ezo.event_queue.add(event)
+                    if err:
+                        print("error adding event to queue")
+                        print("message: {}".format(err))
                 print("in event loop")
                 await asyncio.sleep(interval)
         except Exception as e:
@@ -317,19 +321,15 @@ class DB:
 
     def find(self, storage_type, key, deserialize=True):
         try:
-
             pkey = DB.pkey(storage_type, key)
             val = DB.db.get(pkey)
             if not val:
                 return None, None
-            # val is a tuple -- (key, value) - you want the value
             if deserialize:
                 obj = pickle.loads(val)
             else:
-                obj = val[1]
+                obj = val
 
-        except StopIteration:
-            return None, None
         except Exception as e:
             return None, e
         return obj, None
@@ -344,22 +344,54 @@ class DB:
 
 class ContractEventQueue:
     '''
-    message queue like class for managing received ethereum contract events
+    queue for managing received ethereum contract events
 
     '''
+    _eqpfx = "event_queue"
+    _eq_date = "event_date"
 
-    def __init__(self, contract_event):
-        self._eq = OrderedDict
+
+    def __init__(self, db):
+        self._eq = {}
+        self.db = db
+        self.timestamp = int(time.time())
+
+    # if starting, load freshest events into queue - default age limit is one hour
+    def load(self, aged=3600):
 
         pass
 
-    def find(self):
+    def add(self, contract_event):
+        sc = pickle.dumps(contract_event)
+        chash = xxhash.xxh64(sc).hexdigest()
+        res, err = self.db.save(ContractEventQueue._eqpfx, chash, contract_event)
+        if err:
+            return None, err
+        res, err = self.db.save(ContractEventQueue._eq_date, chash, self.timestamp)
+        if err:
+            return None, err
+        self._eq[chash] = contract_event
+        return chash, None
+
+    def prune(self):
         pass
 
-    def save(self):
+    def find(self, ):
         pass
 
 
+class ContractEvent:
+
+    def __init__(self, rce):
+        self.timestamp = int(time.time())
+        self.address = rce["address"]
+        self.data = rce["data"]
+        self.log_index = rce["logIndex"]
+        self.tx = rce["transactionHash"]
+        self.topics = rce["topics"]
+        self.block_number = rce["blockNumber"]
+
+        self.event_topic = self.topics[0]
 
 
 
