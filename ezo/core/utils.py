@@ -20,11 +20,12 @@ def create_ethereum_account():
     print(ks)
 
 
-async def event_loop1(event_filter, interval=1):
+async def event_loop1(event_filter, handler, interval=1):
     while True:
         for event in event_filter.get_new_entries():
             print("got an event: {}".format(event))
-            handle_event(event)
+            handler(event)
+ #           handle_event(event)
         print("in event loop")
         await asyncio.sleep(interval)
 
