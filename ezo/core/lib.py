@@ -10,7 +10,7 @@ from core.helpers import get_url, get_hash, get_account, get_handler_path, get_t
 from core.utils import gen_event_handler_code
 from datetime import datetime
 from collections import OrderedDict
-import plyvel, pickle, asyncio, xxhash, time, os.path
+import plyvel, pickle, asyncio, xxhash, time, os.path, os
 
 
 class EZO:
@@ -173,12 +173,9 @@ class Contract:
                 for event in event_filter.get_new_entries():
                     print("got an event: {}".format(event))
 
-                    #write event to queue - convert to ContractEvent instance first
-                    _, err = self._ezo.event_queue.add(ContractEvent(event))
-                    if err:
-                        print("error adding event to queue")
-                        print("message: {}".format(err))
-                print("in event loop")
+                    ContractEvent.handler(event, self)
+
+ #               print("in event loop")
                 await asyncio.sleep(interval)
         except Exception as e:
             return None, e
@@ -195,6 +192,7 @@ class Contract:
         c["source"] = self.source
         c["hash"] = get_hash(self.source)
         c["timestamp"] = self.timestamp
+        c["te-map"] = self.te_map
 
         ks, err =  self._ezo.db.save("contracts", c["hash"], c, overwrite=overwrite)
         if err:
@@ -207,35 +205,42 @@ class Contract:
         contract_name = self.name.replace('<stdin>:', '')
         errors = list()
 
+        events = list()
         # for each event in abi
-        events = [x for x in self.abi if self.abi["type"] == "event"]
+        for elem in self.abi:
+            if elem["type"] == "event":
+                events.append(elem)
+#        events = [x for x in self.abi if self.abi["type"] == "event"]
         for event in events:
             #     get the topic sha3
-            topic = Web3.sha3(get_topic_sha3(event))
+            topic = Web3.sha3(text=get_topic_sha3(event))
 
-            #     map the contract and event name to the topic
-            self.te_map[topic] = event["name"]
+
 
             #     build full path to new event handler
-            hp = get_handler_path(self._ezo.config, contract_name, event["name"])
-            eh = "{}/{}".format(hp, "handler.py")
+            hp = get_handler_path(self._ezo.config, contract_name)
+            if not os.path.isdir(hp):
+                os.mkdir(hp)
+
+            eh = "{}/{}_{}".format(hp, event['name'], "handler.py")
 
             #     check to see if it exists
             #     if not, or if overwrite option is on
-            if not os.path.isfile(eh) or overwrite:
+            if not os.path.exists(eh) or overwrite:
 
             #         create event handler scaffold in python
                 try:
-                    f = open(eh, 'w')
-                    f.write(gen_event_handler_code())
-                    f.close()
+                    with open(eh, "w+") as f:
+                        f.write(gen_event_handler_code())
 
                 except Exception as e:
                     print("gen error: {}".format(e))
                     errors.append(e)
 
+            #  map the topic to the handler
+            self.te_map[topic] = eh
 
-        # TODO save contract with overwrite set to true
+        self.save(overwrite=True)
 
         return None, errors
 
@@ -259,6 +264,7 @@ class Contract:
         c.hash = cp["hash"]
         c.source = cp["source"]
         c.timestamp = cp["timestamp"]
+        c.te_map = cp['te-map']
 
         return c, None
 
@@ -426,10 +432,8 @@ class ContractEventQueue:
 
 class ContractEvent:
 
-    # topic to event mapping
-    te_map = dict()
 
-    def __init__(self, contract, rce):
+    def __init__(self, rce):
         self.timestamp = int(time.time())
         self.address = rce["address"]
         self.data = rce["data"]
@@ -441,13 +445,19 @@ class ContractEvent:
         self.event_topic = self.topics[0]
 
     @classmethod
-    def handler(cls, rce):
+    def handler(cls, rce, contract):
 
         ce = ContractEvent(rce)
 
         # find the mappped method for the topic
-        if ce.event_topic in ContractEvent.te_map:
+        if ce.event_topic in contract.te_map:
+            print("found the topic")
+            h= contract.te_map[ce.event_topic]
+            h.handler("in the handler")
 
+
+        else:
+            print("topic not in map")
 
 
 

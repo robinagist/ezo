@@ -184,7 +184,9 @@ class EZOGeneratorController(CementBaseController):
         description = "generate accounts and handler scaffolding"
         arguments = [
             (['--overwrite'],
-             dict(action='store_true', help="force overwriting of existing record (contract, deployment)"))
+             dict(action='store_true', help="force overwriting of existing record (contract, deployment)")),
+            (['extra_args'],
+             dict(action='store', nargs='*'))
         ]
 
     @expose(help="gen", hide=True)
@@ -197,7 +199,21 @@ class EZOGeneratorController(CementBaseController):
 
     @expose(help="generate handlers and callback methods")
     def handlers(self):
+        log = self.app.log
+        ezo = self.app.ezo
+        args = self.app.pargs
 
+        # go through each contract hash and create handlers
+        for h in args.extra_args:
+            log.debug("contract hash: {}".format(h))
+            c, err = Contract.create_from_hash(h, ezo)
+            if err:
+                return None, err
+            log.debug('contract name: {}'.format(c.name))
+            _, err = c.generate_event_handlers()
+            if err:
+                return None, err
+        return None, None
 
 
 class EZOApp(CementApp):
