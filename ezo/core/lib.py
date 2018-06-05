@@ -10,7 +10,8 @@ from core.helpers import get_url, get_hash, get_account, get_handler_path, get_t
 from core.utils import gen_event_handler_code
 from datetime import datetime
 from collections import OrderedDict
-import plyvel, pickle, asyncio, xxhash, time, os.path, os
+import plyvel, pickle, asyncio, xxhash, time, os.path, os, inflection
+import importlib.util
 
 
 class EZO:
@@ -98,6 +99,37 @@ class EZO:
             asyncio.gather(*contract_listeners)
         )
 
+class ContractEvent:
+
+    def __init__(self, rce):
+        self.timestamp = int(time.time())
+        self.address = rce["address"]
+        self.data = rce["data"]
+        self.log_index = rce["logIndex"]
+        self.tx = rce["transactionHash"]
+        self.topics = rce["topics"]
+        self.block_number = rce["blockNumber"]
+        self.event_topic = self.topics[0]
+
+    @classmethod
+    def handler(cls, rce, contract):
+
+        ce = ContractEvent(rce)
+
+        # find the mappped method for the topic
+        if ce.event_topic in contract.te_map:
+            print("found the topic")
+            handler_path = contract.te_map[ce.event_topic]
+            s = importlib.util.spec_from_file_location("handlers", handler_path)
+            handler_module = importlib.util.module_from_spec(s)
+            s.loader.exec_module(handler_module)
+            handler_module.handler(ce, contract)
+    #        h.handler("in the handler")
+
+
+        else:
+            print("topic not in map")
+
 
 class Contract:
 
@@ -171,7 +203,7 @@ class Contract:
         try:
             while True:
                 for event in event_filter.get_new_entries():
-                    print("got an event: {}".format(event))
+  #                  print("got an event: {}".format(event))
 
                     ContractEvent.handler(event, self)
 
@@ -202,33 +234,26 @@ class Contract:
     def generate_event_handlers(self, overwrite=False):
 
         # get the contract name, events from the abi
-        contract_name = self.name.replace('<stdin>:', '')
+        contract_name = inflection.underscore(self.name.replace('<stdin>:', ''))
         errors = list()
 
-        events = list()
-        # for each event in abi
-        for elem in self.abi:
-            if elem["type"] == "event":
-                events.append(elem)
-#        events = [x for x in self.abi if self.abi["type"] == "event"]
+        events = [x for x in self.abi if x["type"] == "event"]
         for event in events:
             #     get the topic sha3
             topic = Web3.sha3(text=get_topic_sha3(event))
-
-
 
             #     build full path to new event handler
             hp = get_handler_path(self._ezo.config, contract_name)
             if not os.path.isdir(hp):
                 os.mkdir(hp)
-
-            eh = "{}/{}_{}".format(hp, event['name'], "handler.py")
+            event_name = inflection.underscore(event['name'])
+            eh = "{}/{}_{}".format(hp, event_name, "handler.py")
 
             #     check to see if it exists
             #     if not, or if overwrite option is on
             if not os.path.exists(eh) or overwrite:
 
-            #         create event handler scaffold in python
+                # create event handler scaffold in python
                 try:
                     with open(eh, "w+") as f:
                         f.write(gen_event_handler_code())
@@ -388,6 +413,9 @@ class DB:
         return bytes("{}__{}".format(storage_type, key), 'utf-8')
 
 
+
+
+
 class ContractEventQueue:
     '''
     queue for managing received ethereum contract events
@@ -400,7 +428,6 @@ class ContractEventQueue:
     def __init__(self, db):
         self._eq = dict()
         self.db = db
-
 
     # if starting, load freshest events into queue - default age limit is one hour
     def load(self, aged=3600):
@@ -428,41 +455,6 @@ class ContractEventQueue:
     def list(self):
         for key, value in self._eq:
             print("contract: {}  event: {}".format(key, value))
-
-
-class ContractEvent:
-
-
-    def __init__(self, rce):
-        self.timestamp = int(time.time())
-        self.address = rce["address"]
-        self.data = rce["data"]
-        self.log_index = rce["logIndex"]
-        self.tx = rce["transactionHash"]
-        self.topics = rce["topics"]
-        self.block_number = rce["blockNumber"]
-
-        self.event_topic = self.topics[0]
-
-    @classmethod
-    def handler(cls, rce, contract):
-
-        ce = ContractEvent(rce)
-
-        # find the mappped method for the topic
-        if ce.event_topic in contract.te_map:
-            print("found the topic")
-            h= contract.te_map[ce.event_topic]
-            h.handler("in the handler")
-
-
-        else:
-            print("topic not in map")
-
-
-
-
-
 
 
 
