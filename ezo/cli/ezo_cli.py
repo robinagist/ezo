@@ -210,7 +210,7 @@ class EZOGeneratorController(CementBaseController):
             if err:
                 return None, err
             log.debug('contract name: {}'.format(c.name))
-            _, err = c.generate_event_handlers()
+            _, err = c.generate_event_handlers(overwrite=args.overwrite)
             if err:
                 return None, err
         return None, None
