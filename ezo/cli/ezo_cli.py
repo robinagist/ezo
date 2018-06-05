@@ -182,7 +182,10 @@ class EZOGeneratorController(CementBaseController):
         stacked_on = "base"
         stacked_type = "nested"
         description = "generate accounts and handler scaffolding"
-        arguments = []
+        arguments = [
+            (['--overwrite'],
+             dict(action='store_true', help="force overwriting of existing record (contract, deployment)"))
+        ]
 
     @expose(help="gen", hide=True)
     def default(self):
@@ -194,7 +197,7 @@ class EZOGeneratorController(CementBaseController):
 
     @expose(help="generate handlers and callback methods")
     def handlers(self):
-        print("handlers")
+
 
 
 class EZOApp(CementApp):

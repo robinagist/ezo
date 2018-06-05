@@ -1,4 +1,4 @@
-import json, asyncio
+import json
 from eth_account import Account
 from xkcdpass import xkcd_password as xp
 
@@ -20,15 +20,14 @@ def create_ethereum_account():
     print(ks)
 
 
-async def event_loop1(event_filter, handler, interval=1):
-    while True:
-        for event in event_filter.get_new_entries():
-            print("got an event: {}".format(event))
-            handler(event)
- #           handle_event(event)
-        print("in event loop")
-        await asyncio.sleep(interval)
+def gen_event_handler_code():
 
-
-def handle_event(event):
-    print("event: {}".format(event))
+    template = '''
+    
+    def handler(data):
+        print(data):
+        
+        ### remove and place your code here
+    
+    '''
+    return template

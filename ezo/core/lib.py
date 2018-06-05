@@ -6,13 +6,12 @@ library for ezo
 
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
-from core.helpers import get_url, get_hash, get_account
-from core.utils import handle_event
+from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
+from core.utils import gen_event_handler_code
 from datetime import datetime
 from collections import OrderedDict
-from multiprocessing import Process
-import plyvel, pickle, asyncio, xxhash, time
-import threading
+import plyvel, pickle, asyncio, xxhash, time, os.path
+
 
 class EZO:
     '''
@@ -112,6 +111,7 @@ class Contract:
         self.abi  = None
         self.bin  = None
         self.source = None
+        self.te_map = dict()
 
     def deploy(self, overwrite=False):
         '''
@@ -173,8 +173,8 @@ class Contract:
                 for event in event_filter.get_new_entries():
                     print("got an event: {}".format(event))
 
-                    #write event to queue
-                    _, err = self._ezo.event_queue.add(event)
+                    #write event to queue - convert to ContractEvent instance first
+                    _, err = self._ezo.event_queue.add(ContractEvent(event))
                     if err:
                         print("error adding event to queue")
                         print("message: {}".format(err))
@@ -200,6 +200,44 @@ class Contract:
         if err:
             return None, err
         return ks, None
+
+    def generate_event_handlers(self, overwrite=False):
+
+        # get the contract name, events from the abi
+        contract_name = self.name.replace('<stdin>:', '')
+        errors = list()
+
+        # for each event in abi
+        events = [x for x in self.abi if self.abi["type"] == "event"]
+        for event in events:
+            #     get the topic sha3
+            topic = Web3.sha3(get_topic_sha3(event))
+
+            #     map the contract and event name to the topic
+            self.te_map[topic] = event["name"]
+
+            #     build full path to new event handler
+            hp = get_handler_path(self._ezo.config, contract_name, event["name"])
+            eh = "{}/{}".format(hp, "handler.py")
+
+            #     check to see if it exists
+            #     if not, or if overwrite option is on
+            if not os.path.isfile(eh) or overwrite:
+
+            #         create event handler scaffold in python
+                try:
+                    f = open(eh, 'w')
+                    f.write(gen_event_handler_code())
+                    f.close()
+
+                except Exception as e:
+                    print("gen error: {}".format(e))
+                    errors.append(e)
+
+
+        # TODO save contract with overwrite set to true
+
+        return None, errors
 
     @staticmethod
     def create_from_hash(hash, ezo):
@@ -292,6 +330,8 @@ class DB:
 
     def __init__(self, dbpath=None):
         if not dbpath:
+            #TODO - put in configuration
+            #TODO - prefix per project
             dbpath = '/tmp/ezodba/'
         DB.db = plyvel.DB(dbpath, create_if_missing=True)
 
@@ -352,9 +392,9 @@ class ContractEventQueue:
 
 
     def __init__(self, db):
-        self._eq = {}
+        self._eq = dict()
         self.db = db
-        self.timestamp = int(time.time())
+
 
     # if starting, load freshest events into queue - default age limit is one hour
     def load(self, aged=3600):
@@ -367,7 +407,7 @@ class ContractEventQueue:
         res, err = self.db.save(ContractEventQueue._eqpfx, chash, contract_event)
         if err:
             return None, err
-        res, err = self.db.save(ContractEventQueue._eq_date, chash, self.timestamp)
+        res, err = self.db.save(ContractEventQueue._eq_date, chash, contract_event.timestamp)
         if err:
             return None, err
         self._eq[chash] = contract_event
@@ -376,13 +416,20 @@ class ContractEventQueue:
     def prune(self):
         pass
 
-    def find(self, ):
+    def find(self):
         pass
+
+    def list(self):
+        for key, value in self._eq:
+            print("contract: {}  event: {}".format(key, value))
 
 
 class ContractEvent:
 
-    def __init__(self, rce):
+    # topic to event mapping
+    te_map = dict()
+
+    def __init__(self, contract, rce):
         self.timestamp = int(time.time())
         self.address = rce["address"]
         self.data = rce["data"]
@@ -392,6 +439,15 @@ class ContractEvent:
         self.block_number = rce["blockNumber"]
 
         self.event_topic = self.topics[0]
+
+    @classmethod
+    def handler(cls, rce):
+
+        ce = ContractEvent(rce)
+
+        # find the mappped method for the topic
+        if ce.event_topic in ContractEvent.te_map:
+
 
 
 
