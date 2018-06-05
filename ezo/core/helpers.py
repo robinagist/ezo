@@ -25,9 +25,9 @@ def get_contract_path(config, filename=None):
     return config["ezo"]["contract-dir"]
 
 # returns a full path to the handler directory
-def get_handler_path(config, contract_name=None, handler_name=None):
-    if handler_name:
-        return "{}/{}".format(config["ezo"]["handlers-dir"], contract_name, handler_name)
+def get_handler_path(config, contract_name=None):
+    if contract_name:
+        return "{}/{}".format(config["handlers-dir"], contract_name)
     return config["ezo"]["handlers-dir"]
 
 
