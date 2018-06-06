@@ -7,7 +7,9 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 `ezo` is built using Python 3.6, the Cement CLI Framework and Web3.py. Contract and deployment state is maintained in LevelDB.
 
-# this repo is in-progress - ###
+# this repo is in-progress 
+
+### update (June 05 2018) - now have a minimal application.  We can now create an oracle with a contract and a few commands, including generating handlers for contract events.  Now for some refactoring, creating an installer and writing some documentation.  
 
 
 
