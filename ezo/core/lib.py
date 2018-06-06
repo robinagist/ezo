@@ -144,6 +144,7 @@ class Contract:
         self.bin  = None
         self.source = None
         self.te_map = dict()
+        self.contract_obj = None
 
     def deploy(self, overwrite=False):
         '''
@@ -215,6 +216,41 @@ class Contract:
         finally:
             loop.close()
 
+    def response(self, response_data):
+        '''
+        called by the event handler with the result data
+        :param response_data: result data
+        :return:
+        '''
+
+        if "address" not in response_data:
+            return None, "address missing from response_data payload"
+        if "function" not in response_data:
+            return None, "method missing from response_data payload"
+        if "params" not in response_data:
+            return None, "params missing from response_data payload"
+
+        tx_dict = dict()
+        tx_dict["gas"] = 50000
+        address = response_data["address"]
+        tx_dict["account"] = get_account(self._ezo.config, self._ezo.target)
+        self._ezo.w3.eth.defaultAccount = tx_dict['account']
+
+        if not self.contract_obj:
+            self.contract_obj = self._ezo.w3.eth.contract(address=address, abi=self.abi)
+
+        method = response_data["function"]
+        params = response_data["params"]
+        contract_func = self.contract_obj.functions[method]
+        try:
+            tx_hash = contract_func(*params).transact()
+            ks = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
+        except Exception as e:
+            print("error: {}".format(e))
+            return None, e
+
+        return tx_hash, None
+
     def save(self, overwrite=False):
 
         c = dict()
@@ -266,7 +302,6 @@ class Contract:
             self.te_map[topic] = eh
 
         self.save(overwrite=True)
-
         return None, errors
 
     @staticmethod
