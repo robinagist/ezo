@@ -20,5 +20,6 @@ class EZOEventQueuePluginController(CementBaseController):
             pass
 
 
+
 def load(app):
     app.handler.register(EZOEventQueuePluginController)

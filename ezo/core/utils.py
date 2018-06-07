@@ -27,13 +27,29 @@ def gen_event_handler_code():
 #
 # data is an instance of ContractEvent
 # contract is the calling instance of Contract - it is used to send a response
+
 def handler(data, contract):
     
-    ### remove this comment and sample print
-    ### and place your code here
+    ### remove this comment and the two print statements below 
     
     print("contract: {}".format(contract.name))
     print("    data: {}".format(data.__dict__))
    
+    ### put your code here
+    
+    
+    
+    ### uncomment the code below to build a response object
+    # response = dict()
+    # response["address"] = data.address  # <<< the contract's address from the data 
+    # response["function"] = None         # <<< replace None with the Contract function that will be called
+    # response["params'] = None           # <<< replace None with a list of your function's data parameters
+     
+    ### uncomment the code below to send a response to the contract function
+    # _, err = contract.response(response)
+    # if err:
+    #     return None, err
+   
+    return None, None
     '''
     return template

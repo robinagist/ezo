@@ -9,8 +9,7 @@ from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
 from core.utils import gen_event_handler_code
 from datetime import datetime
-from collections import OrderedDict
-import plyvel, pickle, asyncio, xxhash, time, os.path, os, inflection
+import plyvel, pickle, asyncio, time, os.path, os, inflection
 import importlib.util
 
 
@@ -23,12 +22,16 @@ class EZO:
     _listeners = dict()
     db = None
 
+    # prefix keys for leveldb
+    CONTRACT = "CONTRACT"
+    COMPILED = "COMPILED"
+    DEPLOYED = "DEPLOYED"
+
     def __init__(self, config, w3=False):
         self.config = config
         self.target = None
         self.w3 = None
-        EZO.db = DB()
-        self.event_queue = ContractEventQueue(EZO.db)
+        EZO.db = DB(config["leveldb"])
         if w3:
             self.dial()
 
@@ -67,28 +70,28 @@ class EZO:
         pass
 
 
-    def start(self, contract_hashes):
+    def start(self, contract_names):
         '''
         loads the contracts from their hashes and starts their event listeners
-        :param contracts:
+        :param contract_names:
         :return:
         '''
 
-        if isinstance(contract_hashes, str):
-            contract_hashes = [contract_hashes]
+        if isinstance(contract_names, str):
+            contract_names = [contract_names]
 
-        if not isinstance(contract_hashes, list):
-            return None, "error: expecting a string, or a list of contract hashes"
+        if not isinstance(contract_names, list):
+            return None, "error: expecting a string, or a list of contract names"
 
         contract_listeners = []
 
-        for hash in contract_hashes:
-            c, err = Contract.create_from_hash(hash, self)
+        for name in contract_names:
+            c, err = Contract.get(name, self)
             # todo - better way to handle this?
             if err:
                 return None, err
 
-            address, err = Contract.get_address(hash, self)
+            address, err = Contract.get_address(name, c.hash, self)
             # TODO - better way to handle this?
             if err:
                 return None, err
@@ -98,6 +101,7 @@ class EZO:
         loop.run_until_complete(
             asyncio.gather(*contract_listeners)
         )
+
 
 class ContractEvent:
 
@@ -111,29 +115,24 @@ class ContractEvent:
         self.block_number = rce["blockNumber"]
         self.event_topic = self.topics[0]
 
-    @classmethod
-    def handler(cls, rce, contract):
+    @staticmethod
+    def handler(rce, contract):
 
         ce = ContractEvent(rce)
 
         # find the mappped method for the topic
         if ce.event_topic in contract.te_map:
-            print("found the topic")
             handler_path = contract.te_map[ce.event_topic]
             s = importlib.util.spec_from_file_location("handlers", handler_path)
             handler_module = importlib.util.module_from_spec(s)
             s.loader.exec_module(handler_module)
             handler_module.handler(ce, contract)
-    #        h.handler("in the handler")
-
 
         else:
             print("topic not in map")
 
 
 class Contract:
-
-    mq = OrderedDict()
 
     def __init__(self, name, ezo):
         self.name = name
@@ -154,9 +153,13 @@ class Contract:
         :return: address, err
         '''
 
+        name = self.name.replace('<stdin>:', "")
+        key = DB.pkey([EZO.DEPLOYED, name, self.hash, self._ezo.target])
+
         # see if a deployment already exists for this contract on this target
         if not overwrite:
-            if self._ezo.db.find(self._ezo.target, self.hash):
+            _, err = self._ezo.db.find(key)
+            if err:
                 return None, "deployment on {} already exists for contract {}".format(self._ezo.target, self.hash)
 
         account = get_account(self._ezo.config, self._ezo.target)
@@ -182,13 +185,12 @@ class Contract:
 
         # save the deployment information
         try:
-            _, err = self._ezo.db.save(self._ezo.target, self.hash, d, overwrite=overwrite)
+            _, err = self._ezo.db.save(key, d, overwrite=overwrite)
             if err:
                 return None, err
         except Exception as e:
             return None, e
         return address, None
-
 
     async def listen(self, address):
         '''
@@ -204,15 +206,10 @@ class Contract:
         try:
             while True:
                 for event in event_filter.get_new_entries():
-  #                  print("got an event: {}".format(event))
-
                     ContractEvent.handler(event, self)
-
- #               print("in event loop")
                 await asyncio.sleep(interval)
         except Exception as e:
             return None, e
-
         finally:
             loop.close()
 
@@ -262,10 +259,24 @@ class Contract:
         c["timestamp"] = self.timestamp
         c["te-map"] = self.te_map
 
-        ks, err =  self._ezo.db.save("contracts", c["hash"], c, overwrite=overwrite)
+
+        # save to compiled contract
+        name = self.name.replace('<stdin>:',"")
+
+        key = DB.pkey([EZO.COMPILED, name, c["hash"]])
+        ks, err =  self._ezo.db.save(key, c, overwrite=overwrite)
         if err:
             return None, err
+
+        # save to contract
+        key = DB.pkey([EZO.CONTRACT, name])
+        ks, err = self._ezo.db.save(key, c, overwrite=True)
+        if err:
+            return None, err
+
         return ks, None
+
+
 
     def generate_event_handlers(self, overwrite=False):
 
@@ -305,6 +316,32 @@ class Contract:
         return None, errors
 
     @staticmethod
+    def get(name, ezo):
+        '''
+        get the latest compiled contract instance by contract name
+        :param name:
+        :param ezo:
+        :return:
+        '''
+
+        key = DB.pkey([EZO.CONTRACT, name])
+        cp, err = ezo.db.find(key)
+        if err:
+            return None, err
+
+        # create a new Contract
+        c = Contract(cp["name"], ezo)
+        c.abi = cp["abi"]
+        c.bin = cp["bin"]
+        c.hash = cp["hash"]
+        c.source = cp["source"]
+        c.timestamp = cp["timestamp"]
+        c.te_map = cp['te-map']
+
+        return c, None
+
+
+    @staticmethod
     def create_from_hash(hash, ezo):
         '''
         given the hash of a contract, returns a contract  from the data store
@@ -328,8 +365,6 @@ class Contract:
 
         return c, None
 
-
-
     @staticmethod
     def load(filepath):
         '''
@@ -345,7 +380,6 @@ class Contract:
         except Exception as e:
             return None, e
         return source, None
-
 
     @staticmethod
     def compile(source, ezo):
@@ -371,7 +405,7 @@ class Contract:
         return compiled_list, None
 
     @staticmethod
-    def get_address(hash, ezo):
+    def get_address(name, hash, ezo):
         '''
         fetches the contract address of deployment
 
@@ -379,11 +413,13 @@ class Contract:
         :return: (string) address of the contract
                  error, if any
         '''
-        target = ezo.target
-        address, err = ezo.db.find(target, hash)
+     #   name = self.name.replace('<stdin>:', "")
+        key = DB.pkey([EZO.DEPLOYED, name, hash, ezo.target])
+
+        d, err = ezo.db.find(key)
         if err:
             return None, err
-        return address['address'].lower(), None
+        return d['address'].lower(), None
 
 
 class DB:
@@ -396,39 +432,36 @@ class DB:
 
     def __init__(self, dbpath=None):
         if not dbpath:
-            #TODO - put in configuration
-            #TODO - prefix per project
-            dbpath = '/tmp/ezodba/'
+            dbpath = '/tmp/ezodb/'
+
         DB.db = plyvel.DB(dbpath, create_if_missing=True)
 
-    def save(self, storage_type, key, value, overwrite=False, serialize=True):
-        if not isinstance(storage_type, str):
-            return None, "storage_type must be a string"
-        if not isinstance(key, str):
-            return None, "key must be a string"
+    def save(self, key, value, overwrite=False, serialize=True):
+
+        if isinstance(key, str):
+            key = bytes(key, 'utf=8')
 
         if not overwrite:
-            a, err = self.find(storage_type, key)
+            a, err = self.find(key)
             if err:
                 return None, err
             if a:
-                return None, "entry for {} in {} already exists ".format(key, storage_type)
+                return None, "{} already exists ".format(key)
 
         if serialize:
             value = pickle.dumps(value)
         try:
-            DB.db.put(DB.pkey(storage_type, key), value)
+            DB.db.put(key, value)
         except Exception as e:
             return None, e
         return key, None
 
-    def delete(self, storage_type, key):
+    def delete(self, key):
         pass
 
-    def find(self, storage_type, key, deserialize=True):
+    def find(self, key, deserialize=True):
         try:
-            pkey = DB.pkey(storage_type, key)
-            val = DB.db.get(pkey)
+            val = DB.db.get(key)
             if not val:
                 return None, None
             if deserialize:
@@ -443,53 +476,16 @@ class DB:
     def close(self):
         DB.db.close()
 
+
+#    def pkey(storage_type, key):
+#        return bytes("{}:{}".format(storage_type, key), 'utf-8')
     @staticmethod
-    def pkey(storage_type, key):
-        return bytes("{}__{}".format(storage_type, key), 'utf-8')
-
-
-
-
-
-class ContractEventQueue:
-    '''
-    queue for managing received ethereum contract events
-
-    '''
-    _eqpfx = "event_queue"
-    _eq_date = "event_date"
-
-
-    def __init__(self, db):
-        self._eq = dict()
-        self.db = db
-
-    # if starting, load freshest events into queue - default age limit is one hour
-    def load(self, aged=3600):
-
-        pass
-
-    def add(self, contract_event):
-        sc = pickle.dumps(contract_event)
-        chash = xxhash.xxh64(sc).hexdigest()
-        res, err = self.db.save(ContractEventQueue._eqpfx, chash, contract_event)
-        if err:
-            return None, err
-        res, err = self.db.save(ContractEventQueue._eq_date, chash, contract_event.timestamp)
-        if err:
-            return None, err
-        self._eq[chash] = contract_event
-        return chash, None
-
-    def prune(self):
-        pass
-
-    def find(self):
-        pass
-
-    def list(self):
-        for key, value in self._eq:
-            print("contract: {}  event: {}".format(key, value))
+    def pkey(elems):
+        key = ""
+        for e in elems:
+            key += e
+            key += ":"
+        return bytes(key, 'utf=8')
 
 
 
