@@ -70,28 +70,28 @@ class EZO:
         pass
 
 
-    def start(self, contract_hashes):
+    def start(self, contract_names):
         '''
         loads the contracts from their hashes and starts their event listeners
-        :param contracts:
+        :param contract_names:
         :return:
         '''
 
-        if isinstance(contract_hashes, str):
-            contract_hashes = [contract_hashes]
+        if isinstance(contract_names, str):
+            contract_names = [contract_names]
 
-        if not isinstance(contract_hashes, list):
-            return None, "error: expecting a string, or a list of contract hashes"
+        if not isinstance(contract_names, list):
+            return None, "error: expecting a string, or a list of contract names"
 
         contract_listeners = []
 
-        for hash in contract_hashes:
-            c, err = Contract.create_from_hash(hash, self)
+        for name in contract_names:
+            c, err = Contract.get(name, self)
             # todo - better way to handle this?
             if err:
                 return None, err
 
-            address, err = Contract.get_address(hash, self)
+            address, err = Contract.get_address(name, c.hash, self)
             # TODO - better way to handle this?
             if err:
                 return None, err
@@ -405,7 +405,7 @@ class Contract:
         return compiled_list, None
 
     @staticmethod
-    def get_address(hash, ezo):
+    def get_address(name, hash, ezo):
         '''
         fetches the contract address of deployment
 
@@ -413,11 +413,13 @@ class Contract:
         :return: (string) address of the contract
                  error, if any
         '''
-        target = ezo.target
-        address, err = ezo.db.find(target, hash)
+     #   name = self.name.replace('<stdin>:', "")
+        key = DB.pkey([EZO.DEPLOYED, name, hash, ezo.target])
+
+        d, err = ezo.db.find(key)
         if err:
             return None, err
-        return address['address'].lower(), None
+        return d['address'].lower(), None
 
 
 class DB:
