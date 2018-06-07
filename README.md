@@ -1,5 +1,4 @@
-# ezo
-# easily create Ethereum oracles
+# ezo -- easily create Ethereum oracles
 
 `ezo` makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
 
