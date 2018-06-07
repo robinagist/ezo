@@ -16,36 +16,43 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 ## Quick Start example project
 
 ### Create the project 
-`ezo` creates the initial project directory and starter configuration.
+`ezo` creates the initial project directory and starter configuration.  There are even sample contracts that you can compile, deploy and use immediately.
 
 `ezo create <project_name>` 
 
 ### Compile the source file
-place contract files in the <project_name>/contracts and run
+place contract files in the <project_name>/contracts, or compile one of the sample contracts
 
 `ezo compile <contract file>`
 
-`ezo` will return a hash of the source file, which will be used as a reference to the compiled source.  If the source changes, then the hash will change.  `ezo` uses this system to keep track of compilations and deployments, so that eth is not wasted on deploying the same contract more than once.  This behavior can be overridden with the `--overwrite` option.
+`ezo` will compile the source file (just Solidity at the moment - Vyper coming soon), and save all of the artifacts in LevelDB.
+
+### Generate Handler Scaffold
+ezo will generate attach event signatures (topics), and generate a basic Python handler for each event in the contract.  It places them in the `~/ezo/handlers` subdirectory of the project, where you can add your logic, define your response and return a reply to the contract.  
+
+`ezo gen <contract name>`
+
 
 ### Deploy Contract
-After successfully compiling the contracts, deploy the contract to the network using the source hash from the compile step:
+After successfully compiling the contracts, and generating the handlers, it's time deploy the contract to the network using the source hash from the compile step:
 
-`ezo deploy <contract hash> -t <target>`
+`ezo deploy <contract name> -t <target>`
 
 The targets are set up in the config.json file.  Out of the box, `test-http` is configured for the Ganache GUI HTTP, `test-ws` is configured for Ganache GUI WebSockets.  As many target nodes can be configured as needed.  Once a contract has been debugged and tested on the test network, it can be deployed by simply changing the deployment target on the command line.
 
-### Generate Handler Scaffold
+### Start ezo
+Start ezo by simply typing
 
-`ezo gen <contract hash>`
+`ezo start <contract name>` -t <target>
+  
+ ezo will begin listening for events.  The handlers will print the output of events as received.  
 
-View Contracts
+### View Contracts
 
 `ezo view contracts`
 
-View Deployments
+### View Deployments
 
 `ezo view deployments`
 
-Start ezo
 
-`ezo start`
