@@ -13,7 +13,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 
 
-## Quick Start example project
+## Quick Start
 
 ### Create the project 
 `ezo` creates the initial project directory and starter configuration.  There are even sample contracts that you can compile, deploy and use immediately.
