@@ -57,22 +57,9 @@ class EZO:
 
         return self.w3, None
 
-
-    def view_deployments(self):
-        deploys = list()
-
-
-    def view_contracts(self):
-        contracts = list()
-
-
-    def view_source(self, hash):
-        pass
-
-
     def start(self, contract_names):
         '''
-        loads the contracts from their hashes and starts their event listeners
+        loads the contracts -- starts their event listeners
         :param contract_names:
         :return:
         '''
@@ -154,11 +141,11 @@ class Contract:
         '''
 
         name = self.name.replace('<stdin>:', "")
-        key = DB.pkey([EZO.DEPLOYED, name, self.hash, self._ezo.target])
+        key = DB.pkey([EZO.DEPLOYED, name, self._ezo.target, self.hash])
 
         # see if a deployment already exists for this contract on this target
         if not overwrite:
-            _, err = self._ezo.db.find(key)
+            _, err = self._ezo.db.get(key)
             if err:
                 return None, "deployment on {} already exists for contract {}".format(self._ezo.target, self.hash)
 
@@ -325,7 +312,7 @@ class Contract:
         '''
 
         key = DB.pkey([EZO.CONTRACT, name])
-        cp, err = ezo.db.find(key)
+        cp, err = ezo.db.get(key)
         if err:
             return None, err
 
@@ -350,7 +337,7 @@ class Contract:
         :return: contract instance, error
         '''
 
-        cp, err = ezo.db.find("contracts", hash)
+        cp, err = ezo.db.get("contracts", hash)
         if err:
             return None, err
 
@@ -413,10 +400,10 @@ class Contract:
         :return: (string) address of the contract
                  error, if any
         '''
-     #   name = self.name.replace('<stdin>:', "")
-        key = DB.pkey([EZO.DEPLOYED, name, hash, ezo.target])
 
-        d, err = ezo.db.find(key)
+        key = DB.pkey([EZO.DEPLOYED, name, ezo.target, hash])
+
+        d, err = ezo.db.get(key)
         if err:
             return None, err
         return d['address'].lower(), None
@@ -442,7 +429,7 @@ class DB:
             key = bytes(key, 'utf=8')
 
         if not overwrite:
-            a, err = self.find(key)
+            a, err = self.get(key)
             if err:
                 return None, err
             if a:
@@ -459,7 +446,7 @@ class DB:
     def delete(self, key):
         pass
 
-    def find(self, key, deserialize=True):
+    def get(self, key, deserialize=True):
         try:
             val = DB.db.get(key)
             if not val:
@@ -473,12 +460,12 @@ class DB:
             return None, e
         return obj, None
 
+    def find(self, keypart):
+        pass
+
     def close(self):
         DB.db.close()
 
-
-#    def pkey(storage_type, key):
-#        return bytes("{}:{}".format(storage_type, key), 'utf-8')
     @staticmethod
     def pkey(elems):
         key = ""

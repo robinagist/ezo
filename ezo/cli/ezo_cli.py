@@ -8,7 +8,6 @@ use at your own risk
 
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
-from core.helpers import display_contract_rows, display_deployment_rows
 from core.lib import Contract
 from core.helpers import get_contract_path
 from core.utils import create_ethereum_account
@@ -110,37 +109,6 @@ class EZOBaseController(CementBaseController):
 
         exit(0)
 
-    @expose(help="view contracts and deployments")
-    def view(self):
-
-        ezo = self.app.ezo
-        log = self.app.log
-
-        args = self.app.pargs.extra_args
-        if len(args) < 1:
-            log.error("missing parameter <deploys|contracts|source>")
-            exit(1)
-
-        cmd = args.pop() if args else None
-        param = args.pop() if args else "all"
-        if cmd == "deploys":
-            rows, err = ezo.view_deployments(param)
-            if err:
-                log.error("view deploys: {}".format(err))
-                exit(2)
-            display_deployment_rows(rows)
-
-        elif cmd == "contracts":
-            rows, err = ezo.view_contracts(param)
-            if err:
-                log.error("view contracts: {}".format(err))
-            display_contract_rows(rows)
-
-        elif cmd == "source":
-            ezo.view_source(param)
-        else:
-            print("follow command with one of <deploys|contracts|source>")
-            exit(1)
 
     @expose(help="delete contracts or deployments")
     def delete(self):
@@ -199,7 +167,7 @@ class EZOGeneratorController(CementBaseController):
     def account(self):
         create_ethereum_account()
 
-    @expose(help="generate handlers and callback methods")
+    @expose(help="generate event handlers")
     def handlers(self):
         log = self.app.log
         ezo = self.app.ezo
@@ -215,6 +183,34 @@ class EZOGeneratorController(CementBaseController):
             if err:
                 return None, err
         return None, None
+
+
+class EZOViewController(CementBaseController):
+    '''
+    parent controller for all things to be generated, such as accounts and code
+    '''
+    class Meta:
+        label = "view"
+        stacked_on = "base"
+        stacked_type = "nested"
+        description = "view contracts and deployments"
+        arguments = [
+            (['extra_args'],
+             dict(action='store', nargs='*'))
+        ]
+
+    @expose(help="view contracts")
+    def contracts(self):
+
+        ezo = self.app.ezo
+        log = self.app.log
+
+
+    @expose(help="view deploys")
+    def deploys(self):
+        ezo = self.app.ezo
+        log = self.app.log
+
 
 
 class EZOApp(CementApp):
