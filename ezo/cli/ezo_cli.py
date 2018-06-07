@@ -83,7 +83,7 @@ class EZOBaseController(CementBaseController):
 
         _, err = ezo.dial()
         if err:
-            log.error("unable to dial web node")
+            log.error("unable to dial node")
             log.error("error: {}".format(err))
             exit(2)
 
@@ -91,7 +91,10 @@ class EZOBaseController(CementBaseController):
             log.info("deploying contract {} to {}".format(h, ezo.target))
 
             # get the compiled contract proxy by it's source hash
-            c, err = Contract.create_from_hash(h, ezo)
+            # c, err = Contract.create_from_hash(h, ezo)
+
+            # get the compiled contract by it's Contract Name
+            c, err = Contract.get(h, ezo)
             if err:
                 log.error("error loading contract from storage: {}".format(err))
                 exit(2)
@@ -205,11 +208,10 @@ class EZOGeneratorController(CementBaseController):
 
         # go through each contract hash and create handlers
         for h in args.extra_args:
-            log.debug("contract hash: {}".format(h))
-            c, err = Contract.create_from_hash(h, ezo)
+            log.info("generating handlers for contract: {}".format(h))
+            c, err = Contract.get(h, ezo)
             if err:
                 return None, err
-            log.debug('contract name: {}'.format(c.name))
             _, err = c.generate_event_handlers(overwrite=args.overwrite)
             if err:
                 return None, err
