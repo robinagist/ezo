@@ -28,10 +28,9 @@ place contract files in the <project_name>/contracts, or compile one of the samp
 `ezo` will compile the source file (just Solidity at the moment - Vyper coming soon), and save all of the artifacts in LevelDB.
 
 ### Generate Handler Scaffold
-ezo will generate attach event signatures (topics), and generate a basic Python handler for each event in the contract.  It places them in the `~/ezo/handlers` subdirectory of the project, where you can add your logic, define your response and return a reply to the contract.  
+ezo generates handlers for each event in the contract, and attach the hashed event signatures (topics).  ezo places them in the `~/ezo/handlers` subdirectory of the project, where you can add your logic, define your response and return a reply to the contract.  
 
 `ezo gen <contract name>`
-
 
 ### Deploy Contract
 After successfully compiling the contracts, and generating the handlers, it's time deploy the contract to the network using the source hash from the compile step:
@@ -41,7 +40,7 @@ After successfully compiling the contracts, and generating the handlers, it's ti
 The targets are set up in the config.json file.  Out of the box, `test-http` is configured for the Ganache GUI HTTP, `test-ws` is configured for Ganache GUI WebSockets.  As many target nodes can be configured as needed.  Once a contract has been debugged and tested on the test network, it can be deployed by simply changing the deployment target on the command line.
 
 ### Start ezo
-Start ezo by simply typing
+Start ezo by typing
 
 `ezo start <contract name>` -t <target>
   
