@@ -5,12 +5,20 @@
 
 Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start out testing with Ganache on your local machine, later move to the test net and then the mainnet, by simply specifying the target at deployment time.
 
-`ezo` is built using Python 3.6, the Cement CLI Framework and Web3.py. Contract and deployment state is maintained in LevelDB.
+`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`. Contract and deployment state is maintained in `LevelDB`.
 
-# this repo is in-progress 
+## v 0.2 Features
++ build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
++ compile and deploy to multiple networks
++ generates handlers in Python, for easy customization
++ Web3 1.0 compliant using Web3.py
++ soon: local and node-hosted keys
++ compiles Solidity and (soon) Vyper contracts
++ choose between WebSockets or HTTPS
 
-### update (June 05 2018) - now have a minimal application.  We can now create an oracle with a contract and a few commands, including generating handlers for contract events.  Now for some refactoring, creating an installer and writing some documentation.  
+#### this repo is in-progress 
 
+#### update (June 05 2018) - now have a minimal application.  We can now create an oracle with a contract and a few commands, including generating handlers for contract events.  Now for some refactoring, creating an installer and writing some documentation.  
 
 
 ## Quick Start
