@@ -6,7 +6,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 `ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`. Contract and deployment state is maintained in `LevelDB`.
 
-## v 0.2 Features
+## v 0.2 Features (scheduled for release in mid-June 2018)
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
 + compile and deploy to multiple networks
 + generates handlers in Python, for easy customization
