@@ -66,8 +66,6 @@ def get_topic_sha3(event_block):
     return sig
 
 
-
-
 def display_deployment_rows(rows):
     for row in rows:
         print("{} - {} - {} - {} - {}".format(row["contact-name"], row["hash"], row["address"], row["target"], row["timestamp"]))
@@ -79,3 +77,35 @@ def display_contract_rows(rows):
         print("{} - {} - {}".format(row['name'], row['hash'], row['timestamp']))
     print("total contracts: {}".format(len(rows)))
 
+
+### text tools
+
+def red(str):
+    return("{}{}{}".format('\033[31m', str, '\033[39m'))
+
+def green(str):
+    return("{}{}{}".format('\033[32m', str, '\033[39m'))
+
+def yellow(str):
+    return("{}{}{}".format('\033[33m', str, '\033[39m'))
+
+def blue(str):
+    return("{}{}{}".format('\033[34m', str, '\033[39m'))
+
+def magenta(str):
+    return("{}{}{}".format('\033[35m', str, '\033[39m'))
+
+def cyan(str):
+    return("{}{}{}".format('\033[36m', str, '\033[39m'))
+
+def white(str):
+    return("{}{}{}".format('\033[37m', str, '\033[39m'))
+
+def reset(str):
+    return("{}{}".format('\033[0m', str))
+
+def bright(str):
+    return("{}{}".format('\033[1m', str))
+
+def normal(str):
+    return("{}{}".format('\033[1m', str))

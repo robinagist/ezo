@@ -9,8 +9,9 @@ use at your own risk
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract
-from core.helpers import get_contract_path
+from core.helpers import get_contract_path, red, green, cyan
 from core.utils import create_ethereum_account
+from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 
 
 class EZOBaseController(CementBaseController):
@@ -46,12 +47,12 @@ class EZOBaseController(CementBaseController):
             filename = get_contract_path(self.app.config, filename)
             contracts_source, err = Contract.load(filename)
             if err:
-                log.error("error loading contracts file: {}".format(err))
+                log.error(red("error loading contracts file: {}".format(err)))
                 exit(1)
 
             contracts, err = Contract.compile(contracts_source, ezo)
             if err:
-                log.error("error compiling contracts source: {}".format(err))
+                log.error(red("error compiling contracts source: {}".format(err)))
                 exit(1)
 
             # persist the compiled contract
@@ -59,10 +60,10 @@ class EZOBaseController(CementBaseController):
                 contract.source = contracts_source
                 iid, err = contract.save(overwrite=self.app.pargs.overwrite)
                 if err:
-                    log.error("error while persisting Contract to datastore: {}".format(err))
+                    log.error(red("error while persisting Contract to datastore: {}".format(err)))
                     exit(2)
                 else:
-                    log.info("id saved: {}".format(iid))
+                    log.info(cyan("id saved: {}".format(iid)))
             exit(0)
 
     @expose(help="deploy smart contracts")
@@ -75,19 +76,19 @@ class EZOBaseController(CementBaseController):
         log.debug("deploying")
 
         if not args.target:
-            log.error("target must be set with the -t option before deploying")
+            log.error(red("target must be set with the -t option before deploying"))
             exit(1)
 
         ezo.target = args.target
 
         _, err = ezo.dial()
         if err:
-            log.error("unable to dial node")
-            log.error("error: {}".format(err))
+            log.error(red("unable to dial node"))
+            log.error(red("error: {}".format(err)))
             exit(2)
 
         for h in args.extra_args:
-            log.info("deploying contract {} to {}".format(h, ezo.target))
+            log.info(cyan("deploying contract {} to {}".format(h, ezo.target)))
 
             # get the compiled contract proxy by it's source hash
             # c, err = Contract.create_from_hash(h, ezo)
@@ -95,17 +96,17 @@ class EZOBaseController(CementBaseController):
             # get the compiled contract by it's Contract Name
             c, err = Contract.get(h, ezo)
             if err:
-                log.error("error loading contract from storage: {}".format(err))
+                log.error(red("error loading contract from storage: {}".format(err)))
                 exit(2)
 
             # deploy the contract
             addr, err = c.deploy(overwrite=self.app.pargs.overwrite)
             if err:
-                log.error("error deploying contract {} to {}".format(c.hash, ezo.target))
-                log.error("message: {}".format(err))
+                log.error(red("error deploying contract {} to {}".format(c.hash, ezo.target)))
+                log.error(red("message: {}".format(err)))
                 exit(2)
 
-            log.info("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr))
+            log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr)))
 
         exit(0)
 
@@ -129,11 +130,11 @@ class EZOBaseController(CementBaseController):
         ezo.target = args.target
         _, err = ezo.dial()
         if err:
-            log.error("error with node: {}".format(err))
+            log.error(red("error with node: {}".format(err)))
             exit(1)
 
         if not args.extra_args:
-            log.error("error: missing contract name")
+            log.error(red("error: missing contract name"))
             exit(1)
 
         ezo.start(args.extra_args)
@@ -161,7 +162,7 @@ class EZOGeneratorController(CementBaseController):
 
     @expose(help="gen", hide=True)
     def default(self):
-        print("command must be followed by 'account' or 'handlers")
+        self.app.log.error(red("command must be followed by 'account' or 'handlers"))
 
     @expose(help="generate a new local Ethereum account")
     def account(self):
@@ -175,14 +176,17 @@ class EZOGeneratorController(CementBaseController):
 
         # go through each contract hash and create handlers
         for h in args.extra_args:
-            log.info("generating handlers for contract: {}".format(h))
+            log.info(cyan("generating any missing event handlers for contract: {}".format(h)))
             c, err = Contract.get(h, ezo)
             if err:
-                return None, err
+                log.error(red("error getting contract: {}".format(err)))
+                exit(1)
             _, err = c.generate_event_handlers(overwrite=args.overwrite)
             if err:
-                return None, err
-        return None, None
+                log.error(red("error generating handlers: {}".format(err)))
+
+        log.info(cyan("handlers for contract {} generated".format(h)))
+        exit(0)
 
 
 class EZOViewController(CementBaseController):
@@ -195,7 +199,7 @@ class EZOViewController(CementBaseController):
         stacked_type = "nested"
         description = "view contracts and deployments"
         arguments = [
-            (['extra_args'],
+            (['term'],
              dict(action='store', nargs='*'))
         ]
 
@@ -204,13 +208,36 @@ class EZOViewController(CementBaseController):
 
         ezo = self.app.ezo
         log = self.app.log
-
+        res, err = get_contracts(self.app.pargs.term, ezo)
+        if err:
+            log.error(red("error viewing contracts"))
+            log.error(red(err))
+            exit(1)
+#        for c in res:
+        v = view_contracts(res)
+        print()
+        for vs in v:
+            print(vs)
+        print()
+        print(red("ezo contracts: {}".format(len(res))))
+        exit(0)
 
     @expose(help="view deploys")
     def deploys(self):
         ezo = self.app.ezo
         log = self.app.log
-
+        res, err = get_deploys(self.app.pargs.term, ezo)
+        if err:
+            log.error(red("error viewing deployments"))
+            log.error(red(err))
+            exit(1)
+        v = view_deploys(res)
+        print()
+        for vs in v:
+            print(vs)
+        print()
+        print(red("ezo deployments: {}".format(len(res))))
+        exit(0)
 
 
 class EZOApp(CementApp):
@@ -223,5 +250,6 @@ class EZOApp(CementApp):
         config_files = ['~/PycharmProjects/ezo/config.json']
         handlers = [
                     EZOBaseController,
-                    EZOGeneratorController
+                    EZOGeneratorController,
+                    EZOViewController
                     ]

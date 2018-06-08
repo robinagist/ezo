@@ -263,8 +263,6 @@ class Contract:
 
         return ks, None
 
-
-
     def generate_event_handlers(self, overwrite=False):
 
         # get the contract name, events from the abi
@@ -461,7 +459,20 @@ class DB:
         return obj, None
 
     def find(self, keypart):
-        pass
+        if isinstance(keypart, str):
+            keypart = bytes(keypart)
+        elif not isinstance(keypart, bytes):
+            return None, "keypart must be a byte string"
+
+        res = list()
+        try:
+            it = DB.db.iterator(prefix=keypart)
+            for key, value in it:
+               res.append({key.decode('utf-8'): pickle.loads(value)})
+        except Exception as e:
+            return None, e
+
+        return res, None
 
     def close(self):
         DB.db.close()
