@@ -8,6 +8,7 @@ from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
 from core.utils import gen_event_handler_code
+from core.helpers import cyan
 from datetime import datetime
 import plyvel, pickle, asyncio, time, os.path, os, inflection
 import importlib.util
@@ -154,8 +155,9 @@ class Contract:
         try:
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
             #TODO - proper gas calculation
-
-            tx_hash = ct.deploy(transaction={'from': account, 'gas': 405000})
+            h = {'from': account, 'gas': 4050000}
+            tx_hash = ct.constructor().transact(h)
+#            tx_hash = ct.deploy(transaction={'from': account, 'gas': 4050000})
             tx_receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
             address = tx_receipt['contractAddress']
 
@@ -185,8 +187,8 @@ class Contract:
         :return:
         '''
 
-        print("listening to address: {}".format(address))
-        interval = 1
+        print(cyan("listening to address: {}".format(address)))
+        interval = self._ezo.config["poll-interval"]
 
         event_filter = self._ezo.w3.eth.filter({"address": address, "toBlock": "latest"})
         loop = asyncio.new_event_loop()
@@ -230,7 +232,6 @@ class Contract:
             tx_hash = contract_func(*params).transact()
             ks = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
         except Exception as e:
-            print("error: {}".format(e))
             return None, e
 
         return tx_hash, None

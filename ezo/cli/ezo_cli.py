@@ -39,10 +39,8 @@ class EZOBaseController(CementBaseController):
         ezo = self.app.ezo
         log = self.app.log
 
-        log.info("compiling")
-
         for filename in self.app.pargs.extra_args:
-            log.info("compiling contracts")
+            log.info(cyan("compiling contracts in {}".format(filename)))
 
             filename = get_contract_path(self.app.config, filename)
             contracts_source, err = Contract.load(filename)
@@ -63,7 +61,7 @@ class EZOBaseController(CementBaseController):
                     log.error(red("error while persisting Contract to datastore: {}".format(err)))
                     exit(2)
                 else:
-                    log.info(cyan("id saved: {}".format(iid)))
+                    log.info(cyan("contract saved: {}".format(iid)))
             exit(0)
 
     @expose(help="deploy smart contracts")
@@ -89,9 +87,6 @@ class EZOBaseController(CementBaseController):
 
         for h in args.extra_args:
             log.info(cyan("deploying contract {} to {}".format(h, ezo.target)))
-
-            # get the compiled contract proxy by it's source hash
-            # c, err = Contract.create_from_hash(h, ezo)
 
             # get the compiled contract by it's Contract Name
             c, err = Contract.get(h, ezo)
@@ -137,11 +132,11 @@ class EZOBaseController(CementBaseController):
             log.error(red("error: missing contract name"))
             exit(1)
 
-        ezo.start(args.extra_args)
-    #    if err:
-    #        print("error: {}".format(err))
-    #    else:
-    #        print("result: {}".format(res))
+        res, err = ezo.start(args.extra_args)
+        if err:
+            print("error: {}".format(err))
+        else:
+            print("result: {}".format(res))
 
 
 class EZOGeneratorController(CementBaseController):
@@ -185,7 +180,7 @@ class EZOGeneratorController(CementBaseController):
             if err:
                 log.error(red("error generating handlers: {}".format(err)))
 
-        log.info(cyan("handlers for contract {} generated".format(h)))
+            log.info(cyan("handlers for contract {} generated".format(h)))
         exit(0)
 
 

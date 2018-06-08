@@ -33,8 +33,8 @@ def handler(data, contract):
     
     ### remove this comment and the two print statements below 
     
-    print(cyan("contract: {}".format(contract.name)))
-    print(cyan("    data: {}".format(data.__dict__)))
+    print("contract: {}".format(contract.name))
+    print("    data: {}".format(data.__dict__))
    
     ### put your code here
     
