@@ -1,6 +1,7 @@
 import json
 from eth_account import Account
 from xkcdpass import xkcd_password as xp
+from core.helpers import red, cyan, yellow
 
 
 def create_ethereum_account():
@@ -9,15 +10,15 @@ def create_ethereum_account():
     words= xp.generate_wordlist(wordfile=wf, min_length=5, max_length=8)
 
     password_str = xp.generate_xkcdpassword(words)
-    print("password string to decrypt private key -- please store in safe location:")
+    print(cyan("password string to decrypt private key -- please store in safe location:"))
     print()
-    print(password_str)
+    print(yellow(password_str))
     print()
-    print("address:")
-    print(ac.address)
+    print(cyan("address:"))
+    print(yellow(ac.address))
 
     ks = json.dumps(Account.encrypt(ac.privateKey, password_str), indent=2)
-    print(ks)
+    print(red(ks))
 
 
 def gen_event_handler_code():
@@ -32,8 +33,8 @@ def handler(data, contract):
     
     ### remove this comment and the two print statements below 
     
-    print("contract: {}".format(contract.name))
-    print("    data: {}".format(data.__dict__))
+    print(cyan("contract: {}".format(contract.name)))
+    print(cyan("    data: {}".format(data.__dict__)))
    
     ### put your code here
     
