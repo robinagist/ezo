@@ -7,10 +7,10 @@ library for ezo
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
-from core.utils import gen_event_handler_code
-from core.helpers import cyan
+from core.utils import gen_event_handler_code, gen_blank_config_obj
+from core.helpers import cyan, red, yellow, blue
 from datetime import datetime
-import plyvel, pickle, asyncio, time, os.path, os, inflection
+import plyvel, pickle, asyncio, time, os.path, os, inflection, json
 import importlib.util
 
 
@@ -22,6 +22,7 @@ class EZO:
 
     _listeners = dict()
     db = None
+    log = None
 
     # prefix keys for leveldb
     CONTRACT = "CONTRACT"
@@ -32,7 +33,7 @@ class EZO:
         self.config = config
         self.target = None
         self.w3 = None
-        EZO.db = DB(config["leveldb"])
+        EZO.db = DB(config["project-name"], config["leveldb"] )
         if w3:
             self.dial()
 
@@ -75,20 +76,73 @@ class EZO:
 
         for name in contract_names:
             c, err = Contract.get(name, self)
-            # todo - better way to handle this?
             if err:
-                return None, err
+                EZO.log.error(red("error loading contract {}".format(name)))
+                EZO.log.error(red(err))
+                continue
+            if not c:
+                EZO.log.warn(blue("contract {} not found".format(name)))
+                continue
 
             address, err = Contract.get_address(name, c.hash, self)
-            # TODO - better way to handle this?
+
             if err:
-                return None, err
+                EZO.log.error(red("error obtaining address for contract {}").format(name))
+                EZO.log.error(red(err))
+                continue
+            if not address:
+                EZO.log.error(red("no address for contract {}".format(name)))
+                continue
+
             contract_listeners.append(c.listen(address))
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            asyncio.gather(*contract_listeners)
-        )
+        if contract_listeners:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(
+                asyncio.gather(*contract_listeners)
+            )
+
+    @staticmethod
+    def create_project(name):
+        '''
+        creates the initial project skeleton and files
+        :param name: the project name
+        :return:
+        '''
+
+        # from the start directory, create a project directory with the project name
+        path = "{}/{}".format(os.getcwd(), name)
+        if os.path.exists(path):
+            EZO.log.error(red("path {} already exists".format(path)))
+            exit(1)
+
+        # make project directory
+        os.makedev(path)
+
+        # create an empty contracts directory
+        contracts_dir = "{}/{}".format(path, "contracts")
+        os.makedev(contracts_dir)
+
+        # TODO if --include_examples switch, copy example scripts
+
+        # create the handlers directory
+        handlers_dir = "{}/{}".format(path, "handlers")
+        os.makedev(handlers_dir)
+
+        # create the initial config.json file
+        cfg = gen_blank_config_obj()
+        cfg["contract-dir"] = contracts_dir
+        cfg["handlers-dir"] = handlers_dir
+        cfg["project-name"] = name
+
+        # write the file to the root project dir
+        config_file_path = "{}/{}".format(path, "config.json")
+        try:
+            with open(config_file_path, "w+") as outfile:
+                json.dump(cfg, outfile)
+        except Exception as e:
+            return None, e
+        return None, None
 
 
 class ContractEvent:
@@ -117,7 +171,7 @@ class ContractEvent:
             handler_module.handler(ce, contract)
 
         else:
-            print("topic not in map")
+            EZO.log.warn(blue("topic {} not in map".format(ce.event_topic)))
 
 
 class Contract:
@@ -157,7 +211,6 @@ class Contract:
             #TODO - proper gas calculation
             h = {'from': account, 'gas': 4050000}
             tx_hash = ct.constructor().transact(h)
-#            tx_hash = ct.deploy(transaction={'from': account, 'gas': 4050000})
             tx_receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
             address = tx_receipt['contractAddress']
 
@@ -195,6 +248,8 @@ class Contract:
         try:
             while True:
                 for event in event_filter.get_new_entries():
+                    if EZO.log:
+                        EZO.log.debug(yellow("event received: {}".format(event)))
                     ContractEvent.handler(event, self)
                 await asyncio.sleep(interval)
         except Exception as e:
@@ -292,13 +347,15 @@ class Contract:
                         f.write(gen_event_handler_code())
 
                 except Exception as e:
-                    print("gen error: {}".format(e))
+                    print(red("gen error: {}".format(e)))
                     errors.append(e)
 
             #  map the topic to the handler
             self.te_map[topic] = eh
 
-        self.save(overwrite=True)
+        _, err = self.save(overwrite=True)
+        if err:
+            return None, err
         return None, errors
 
     @staticmethod
@@ -314,6 +371,9 @@ class Contract:
         cp, err = ezo.db.get(key)
         if err:
             return None, err
+
+        if not cp:
+            return None, None
 
         # create a new Contract
         c = Contract(cp["name"], ezo)
@@ -405,6 +465,8 @@ class Contract:
         d, err = ezo.db.get(key)
         if err:
             return None, err
+        if not d:
+            return None, None
         return d['address'].lower(), None
 
 
@@ -415,12 +477,13 @@ class DB:
     '''
 
     db = None
-
-    def __init__(self, dbpath=None):
+    # TODO - fix this bugly thing
+    project = "ezoproject"
+    def __init__(self, project, dbpath=None):
         if not dbpath:
             dbpath = '/tmp/ezodb/'
 
-        DB.db = plyvel.DB(dbpath, create_if_missing=True)
+        DB.db = plyvel.DB(dbpath, create_if_missing=True).prefixed_db(bytes(project, 'utf-8'))
 
     def save(self, key, value, overwrite=False, serialize=True):
 

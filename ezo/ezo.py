@@ -15,6 +15,7 @@ from cli.ezo_cli import EZOApp
 def main():
     with EZOApp() as app:
         app.ezo = EZO(app.config["ezo"])
+        EZO.log = app.log
         try:
             app.run()
 
