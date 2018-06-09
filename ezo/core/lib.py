@@ -113,8 +113,7 @@ class EZO:
         # from the start directory, create a project directory with the project name
         path = "{}/{}".format(os.getcwd(), name)
         if os.path.exists(path):
-            EZO.log.error(red("path {} already exists".format(path)))
-            exit(1)
+            return None, "path {} already exists".format(path)
 
         # make project directory
         os.makedev(path)
