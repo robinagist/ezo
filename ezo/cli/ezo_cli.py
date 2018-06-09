@@ -9,8 +9,8 @@ use at your own risk
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract
-from core.helpers import get_contract_path, red, green, cyan
-from core.utils import create_ethereum_account
+from core.helpers import get_contract_path, red, green, cyan, yellow, blue
+from core.utils import create_ethereum_account, gen_blank_config_obj
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 
 
@@ -30,19 +30,13 @@ class EZOBaseController(CementBaseController):
              dict(action='store', nargs='*'))
         ]
 
-    @expose(help="create a new ezo project in the current director")
-    def create(self):
-        self.app.log.info("initalizing new project")
-
     @expose(help="compile smart contracts")
     def compile(self):
         ezo = self.app.ezo
         log = self.app.log
 
-        log.info("compiling")
-
         for filename in self.app.pargs.extra_args:
-            log.info("compiling contracts")
+            log.info(cyan("compiling contracts in {}".format(filename)))
 
             filename = get_contract_path(self.app.config, filename)
             contracts_source, err = Contract.load(filename)
@@ -63,7 +57,7 @@ class EZOBaseController(CementBaseController):
                     log.error(red("error while persisting Contract to datastore: {}".format(err)))
                     exit(2)
                 else:
-                    log.info(cyan("id saved: {}".format(iid)))
+                    log.info(cyan("contract saved: {}".format(iid)))
             exit(0)
 
     @expose(help="deploy smart contracts")
@@ -90,14 +84,14 @@ class EZOBaseController(CementBaseController):
         for h in args.extra_args:
             log.info(cyan("deploying contract {} to {}".format(h, ezo.target)))
 
-            # get the compiled contract proxy by it's source hash
-            # c, err = Contract.create_from_hash(h, ezo)
-
             # get the compiled contract by it's Contract Name
             c, err = Contract.get(h, ezo)
             if err:
                 log.error(red("error loading contract from storage: {}".format(err)))
                 exit(2)
+            if not c:
+                log.error(red("contract '{}' not found -- has it been compiled?").format((h)))
+                exit(1)
 
             # deploy the contract
             addr, err = c.deploy(overwrite=self.app.pargs.overwrite)
@@ -105,6 +99,7 @@ class EZOBaseController(CementBaseController):
                 log.error(red("error deploying contract {} to {}".format(c.hash, ezo.target)))
                 log.error(red("message: {}".format(err)))
                 exit(2)
+
 
             log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr)))
 
@@ -137,11 +132,11 @@ class EZOBaseController(CementBaseController):
             log.error(red("error: missing contract name"))
             exit(1)
 
-        ezo.start(args.extra_args)
-    #    if err:
-    #        print("error: {}".format(err))
-    #    else:
-    #        print("result: {}".format(res))
+        res, err = ezo.start(args.extra_args)
+        if err:
+            log.error(red("error: {}".format(err)))
+        else:
+            log.info(cyan("result: {}".format(res)))
 
 
 class EZOGeneratorController(CementBaseController):
@@ -152,7 +147,7 @@ class EZOGeneratorController(CementBaseController):
         label = "gen"
         stacked_on = "base"
         stacked_type = "nested"
-        description = "generate accounts and handler scaffolding"
+        description = "generate handler scaffolding"
         arguments = [
             (['--overwrite'],
              dict(action='store_true', help="force overwriting of existing record (contract, deployment)")),
@@ -162,11 +157,7 @@ class EZOGeneratorController(CementBaseController):
 
     @expose(help="gen", hide=True)
     def default(self):
-        self.app.log.error(red("command must be followed by 'account' or 'handlers"))
-
-    @expose(help="generate a new local Ethereum account")
-    def account(self):
-        create_ethereum_account()
+        self.app.log.error(red("command must be followed by  'handlers"))
 
     @expose(help="generate event handlers")
     def handlers(self):
@@ -180,12 +171,15 @@ class EZOGeneratorController(CementBaseController):
             c, err = Contract.get(h, ezo)
             if err:
                 log.error(red("error getting contract: {}".format(err)))
-                exit(1)
+                continue
+            if not c:
+                log.error(red("no contract was found for {} - was it compiled?".format(h)))
+                continue
             _, err = c.generate_event_handlers(overwrite=args.overwrite)
             if err:
-                log.error(red("error generating handlers: {}".format(err)))
-
-        log.info(cyan("handlers for contract {} generated".format(h)))
+                log.error(red("error generating handlers for {}: {}".format(h, err)))
+                continue
+            log.info(cyan("handlers for contract {} generated".format(h)))
         exit(0)
 
 
@@ -217,9 +211,9 @@ class EZOViewController(CementBaseController):
         v = view_contracts(res)
         print()
         for vs in v:
-            print(vs)
+            print(yellow(vs))
         print()
-        print(red("ezo contracts: {}".format(len(res))))
+        print(yellow("ezo contracts: {}".format(len(res))))
         exit(0)
 
     @expose(help="view deploys")
@@ -234,10 +228,30 @@ class EZOViewController(CementBaseController):
         v = view_deploys(res)
         print()
         for vs in v:
-            print(vs)
+            print(yellow(vs))
         print()
-        print(red("ezo deployments: {}".format(len(res))))
+        print(yellow("ezo deployments: {}".format(len(res))))
         exit(0)
+
+
+class EZOCreateController(CementBaseController):
+    '''
+    parent controller for all things to be created, such as accounts and projects
+    '''
+    class Meta:
+        label = "create"
+        stacked_on = "base"
+        stacked_type = "nested"
+        description = "create projects or accounts"
+        arguments = [
+            (['term'],
+             dict(action='store', nargs='*'))
+        ]
+
+    @expose(help="generate a new local Ethereum account")
+    def account(self):
+        create_ethereum_account()
+
 
 
 class EZOApp(CementApp):
@@ -251,5 +265,6 @@ class EZOApp(CementApp):
         handlers = [
                     EZOBaseController,
                     EZOGeneratorController,
-                    EZOViewController
+                    EZOViewController,
+                    EZOCreateController
                     ]
