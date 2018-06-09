@@ -15,18 +15,16 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 + compiles Solidity and (soon) Vyper contracts
 + choose between WebSockets or HTTPS
 
-#### this repo is in-progress 
+#### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  On schedule for 0.2alpha release in mid June
 
-#### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  Now for some refactoring, creating an installer and writing some documentation.  
-
-## Install (coming mid June 2018)
+### Install (coming mid June 2018)
 
 0.  Install dependencies:  `Python 3.6` and `LevelDB`.  `Virtualenv` is also highly recommended for `ezo`.
 1.  (pip install coming soon)
 2.  
 
 
-## Quick Start
+### Quick Start
 
 ### Create the project 
 `ezo` creates the initial project directory and starter configuration.  There are even sample contracts that you can compile, deploy and use immediately.
