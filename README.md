@@ -55,10 +55,19 @@ Start ezo by typing
 
 ### View Contracts
 
+To view contracts after compilation:
+
 `ezo view contracts`
+
+Look for a contract by name or partial name:
+
+`ezo view contracts Weather`
+`ezo view contracts WeatherOracle`
 
 ### View Deployments
 
-`ezo view deployments`
+To see current deployments
+
+`ezo view deploys`
 
 
