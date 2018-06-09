@@ -19,6 +19,12 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 #### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  Now for some refactoring, creating an installer and writing some documentation.  
 
+## Install (coming mid June 2018)
+
+0.  Install dependencies:  `Python 3.6` and `LevelDB`.  `Virtualenv` is also highly recommended for `ezo`.
+1.  (pip install coming soon)
+2.  
+
 
 ## Quick Start
 
