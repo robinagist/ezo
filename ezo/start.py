@@ -1,11 +1,3 @@
-VERSION = '0.0.1'
-BANNER = '''
-ezo - easy Ethereum oracle builder v%s
-(c) 2018 - Robin A. Gist - All Rights Reserved
-released under the MIT license
-use at your own risk
-''' % VERSION
-
 
 from cement.core.exc import FrameworkError, CaughtSignal
 from core.lib import EZO
