@@ -75,3 +75,11 @@ To see current deployments
 `ezo view deploys`
 
 
+### Run contracts to trigger events with the built-in test client
+
+No more having to wrestle with Javascript to test your event responders.  Start ezo, and open another terminal window, and tse the ezo command line to send a test transaction.  For example, run:
+
+`ezo send tx WeatherOracle request [] -t test`
+
+To send a transaction with no parameters to the contract's `request` method on the test network.  This emits an event that the WeatherOracle running under ezo will pick up, and respond. 
+
