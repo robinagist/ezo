@@ -10,7 +10,7 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue
-from core.utils import create_ethereum_account, gen_blank_config_obj
+from core.utils import create_ethereum_account, create_blank_config_obj
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 
 
@@ -207,7 +207,7 @@ class EZOViewController(CementBaseController):
             log.error(red("error viewing contracts"))
             log.error(red(err))
             exit(1)
-#        for c in res:
+
         v = view_contracts(res)
         print()
         for vs in v:
@@ -253,6 +253,61 @@ class EZOCreateController(CementBaseController):
         create_ethereum_account()
 
 
+class EZOTestClientController(CementBaseController):
+    '''
+    a contract test client used to simulate contract users
+    '''
+    class Meta:
+        label = "send"
+        stacked_on = "base"
+        stacked_type = "nested"
+        description = "create projects or accounts"
+        arguments = [
+            (['c_args'],
+             dict(action='store', nargs='*', help="contract arguments to send")),
+            (['-t', '--target'],
+             dict(action='store', help='deployment target node (set in configuration'))
+        ]
+
+    @expose(help="run a transaction (state change) on the named Contract method")
+    def tx(self):
+        params = self.app.pargs.c_args
+        ezo = self.app.ezo
+        args = self.app.pargs
+        log = self.app.log
+
+        if not args.target:
+            log.error("target must be set with the -t option before deploying")
+            exit(2)
+        ezo.target = args.target
+
+        _, err = ezo.dial()
+        if err:
+            log.error(red("error with node: {}".format(err)))
+            exit(1)
+
+        if len(params) != 3:
+            self.app.log.error(red("missing parameters for send tx - 3 required"))
+            exit(1)
+
+
+
+        name = params[0]
+        method = params[1]
+        data = params[2]
+
+        resp, err = Contract.send(ezo, name, method, data)
+
+        if err:
+            self.app.log.error(red("tx error: {}".format(err)))
+        self.app.log.info(cyan("response: {}".format(resp)))
+
+
+    @expose(help="call a method on the local node without changing the blockchain state")
+    def call(self):
+        pass
+
+
 
 class EZOApp(CementApp):
     ezo = None
@@ -261,10 +316,11 @@ class EZOApp(CementApp):
         base_controller = "base"
         extensions = ['json_configobj']
         config_handler = 'json_configobj'
-        config_files = ['~/PycharmProjects/ezo/config.json']
+        config_files = ['ezo.conf']
         handlers = [
                     EZOBaseController,
                     EZOGeneratorController,
                     EZOViewController,
-                    EZOCreateController
+                    EZOCreateController,
+                    EZOTestClientController
                     ]

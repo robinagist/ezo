@@ -52,6 +52,11 @@ def get_hash(str):
   }
 '''
 def get_topic_sha3(event_block):
+    '''
+    takes an event block and returns a signature for sha3 hashing
+    :param event_block:
+    :return:
+    '''
 
     sig = ""
     sig += event_block["name"]

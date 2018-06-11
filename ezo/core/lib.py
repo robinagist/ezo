@@ -7,10 +7,10 @@ library for ezo
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
-from core.utils import gen_event_handler_code, gen_blank_config_obj
+from core.utils import gen_event_handler_code, create_blank_config_obj
 from core.helpers import cyan, red, yellow, blue
 from datetime import datetime
-import plyvel, pickle, asyncio, time, os.path, os, inflection, json
+import plyvel, pickle, asyncio, time, os.path, os, inflection, json, ast
 import importlib.util
 
 
@@ -129,7 +129,7 @@ class EZO:
         os.makedev(handlers_dir)
 
         # create the initial config.json file
-        cfg = gen_blank_config_obj()
+        cfg = create_blank_config_obj()
         cfg["contract-dir"] = contracts_dir
         cfg["handlers-dir"] = handlers_dir
         cfg["project-name"] = name
@@ -272,21 +272,28 @@ class Contract:
 
         tx_dict = dict()
         tx_dict["gas"] = 50000
-        address = response_data["address"]
+        address = self._ezo.w3.toChecksumAddress(response_data["address"])
         tx_dict["account"] = get_account(self._ezo.config, self._ezo.target)
         self._ezo.w3.eth.defaultAccount = tx_dict['account']
 
         if not self.contract_obj:
-            self.contract_obj = self._ezo.w3.eth.contract(address=address, abi=self.abi)
+            try:
+                self.contract_obj = self._ezo.w3.eth.contract(address=address, abi=self.abi)
+            except Exception as e:
+                return None, e
 
         method = response_data["function"]
         params = response_data["params"]
         contract_func = self.contract_obj.functions[method]
         try:
-            tx_hash = contract_func(*params).transact()
-            ks = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
+            if not params:
+                tx_hash = contract_func().transact()
+            else:
+                tx_hash = contract_func(*params).transact()
+
+            self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
         except Exception as e:
-            return None, e
+            return None, "error executing transaction: {}".format(e)
 
         return tx_hash, None
 
@@ -356,6 +363,61 @@ class Contract:
         if err:
             return None, err
         return None, errors
+
+
+    def paramsForMethod(self, method, data):
+        '''
+        marshals contract method parameters (in a list) to the format the contract is expecting.  this method
+        is used by the SEND and CALL commands, so that method parameters can be typed in easily from the
+        command line.  it uses the contract ABI for reference
+
+        :param method: the contract method to call (case sensitive)
+        :param data: STRING - an ordered list of method parameters enclosed in quotes (e.g. "['bob',27]")
+        matching the signature of the contract method
+
+        :return: a list of properly formatted data elements
+        '''
+
+        v = ast.literal_eval(data)
+        if not v:
+            return None
+        return v
+
+
+    @classmethod
+    def send(cls, ezo, name, method, data):
+        '''
+        runs a transaction on a contract method
+        :param ezo:  ezo instance
+        :param name:  name of the Contract
+        :param method:  name of the contract method
+        :param data: formatted data to send to the contract method
+        :return:
+        '''
+
+        # load the contract by name
+        c, err = Contract.get(name, ezo)
+        if err:
+            return None, err
+
+        address, err = Contract.get_address(name, c.hash, ezo)
+        if err:
+            return None, err
+
+        d = dict()
+        d["address"] = address
+        d["function"] = method
+        d["params"] = c.paramsForMethod(method, data)
+
+
+        resp, err = c.response(d)
+        if err:
+            return None, err
+
+        return resp, None
+
+
+
 
     @staticmethod
     def get(name, ezo):
@@ -469,6 +531,71 @@ class Contract:
         return d['address'].lower(), None
 
 
+class Catalog:
+    '''
+    a filesystem catalog for ABIs
+
+    motivation:  LevelDB is a single user DB.  Which means when the test client is executed againt a contact
+    while ezo is running as an oracle, it cannot get access to contract ABI information it needs to make
+    a contract call without having to recompile the contract itself.  When ezo compiles a contract, it will save
+    the ABI to this filesystem catalog, so that the test client can access them while ezo runs as an oracle
+    in another process.
+    '''
+
+    path = None
+
+    @staticmethod
+    def put(contract_name, abi):
+        '''
+        save the contract's ABI
+
+        :param contract_name: string - name of the contract
+        :param abi: the contract's abi JSON file
+        :return: None, None if saved okay
+                 None, error is an error
+        '''
+
+        if not Catalog.path:
+            return None, "path to catalog must be set before saving to it"
+        if not contract_name:
+            return None, "contract name must be provided before saving"
+        if not abi:
+            return None, "contract ABI missing"
+
+        abi_file = "{}/{}.abi".format(Catalog.path, contract_name)
+
+        try:
+            with open(abi_file, "w+") as file:
+                file.write(abi)
+        except Exception as e:
+            return None, "Catalog.put error: {}".format(e)
+        return None, None
+
+
+    @staticmethod
+    def get(contract_name):
+        '''
+        return the contract's ABI, marshaled into python dict
+        :param contract_name: string - name of the contract to load
+        :return: ABI, None - if successful
+                 None, error - if error
+        '''
+
+        if not Catalog.path:
+            return None, "path to catalog must be set before searching it"
+        if not contract_name:
+            return None, "contract name missing"
+
+        abi_file = "{}/{}.abi".format(Catalog.path, contract_name)
+
+        try:
+            with open(abi_file, "r") as file:
+                abi = file.read()
+        except Exception as e:
+            return None, "Catalog.get error: {}".format(e)
+        return abi, None
+
+
 class DB:
     '''
     data storage abstraction layer for LevelDB
@@ -476,18 +603,51 @@ class DB:
     '''
 
     db = None
-    # TODO - fix this bugly thing
-    project = "ezoproject"
+    project = None
+    dbpath = None
+
     def __init__(self, project, dbpath=None):
         if not dbpath:
-            dbpath = '/tmp/ezodb/'
+            DB.dbpath = '/tmp/ezodb/'
+        else:
+            DB.dbpath = dbpath
+        if not project:
+            DB.project = 'ezo_project_default'
+        else:
+            DB.project = project
 
-        DB.db = plyvel.DB(dbpath, create_if_missing=True).prefixed_db(bytes(project, 'utf-8'))
+
+    def open(self):
+        '''
+        attempts to open the database.  if it gets a locked message, it will wait one second and try
+        again.  if it is still locked, it will return an error
+        :return: None, None if successful
+                 None, error if error
+        '''
+        cycle = 2
+        count = 0
+
+        while(True):
+            try:
+                DB.db = plyvel.DB(DB.dbpath, create_if_missing=True).prefixed_db(bytes(DB.project, 'utf-8'))
+                if DB.db:
+                    break
+            except Exception as e:
+                # wait for other program to unlock the db
+                count+=1
+                time.sleep(1)
+                if count >= cycle:
+                    return None, "DB error: {}".format(e)
+        return None, None
 
     def save(self, key, value, overwrite=False, serialize=True):
 
         if isinstance(key, str):
             key = bytes(key, 'utf=8')
+
+        _, err = self.open()
+        if err:
+            return None, err
 
         if not overwrite:
             a, err = self.get(key)
@@ -502,12 +662,19 @@ class DB:
             DB.db.put(key, value)
         except Exception as e:
             return None, e
+        self.close()
+
         return key, None
 
     def delete(self, key):
         pass
 
     def get(self, key, deserialize=True):
+
+        _, err = self.open()
+        if err:
+            return None, "DB.get error: {}".format(err)
+
         try:
             val = DB.db.get(key)
             if not val:
@@ -519,9 +686,15 @@ class DB:
 
         except Exception as e:
             return None, e
+        self.close()
         return obj, None
 
     def find(self, keypart):
+
+        _, err = self.open()
+        if err:
+            return None, err
+
         if isinstance(keypart, str):
             keypart = bytes(keypart)
         elif not isinstance(keypart, bytes):
@@ -535,10 +708,13 @@ class DB:
         except Exception as e:
             return None, e
 
+        self.close()
+
         return res, None
 
     def close(self):
-        DB.db.close()
+        DB.db.db.close()
+        DB.db = None
 
     @staticmethod
     def pkey(elems):
