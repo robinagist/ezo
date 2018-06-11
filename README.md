@@ -18,6 +18,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 #### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  On schedule for 0.2alpha release in mid June
 
+
 ### Install (coming mid June 2018)
 
 0.  Install dependencies:  `Python 3.6` and `LevelDB`.  `Virtualenv` is also highly recommended for `ezo`.
@@ -32,6 +33,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 `ezo create <project_name>` 
 
+
 ### Compile the source file
 place contract files in the <project_name>/contracts, or compile one of the sample contracts
 
@@ -39,10 +41,12 @@ place contract files in the <project_name>/contracts, or compile one of the samp
 
 `ezo` will compile the source file (just Solidity at the moment - Vyper coming soon), and save all of the artifacts in LevelDB.
 
+
 ### Generate Handler Scaffold
 ezo generates handlers for each event in the contract, and attach the hashed event signatures (topics).  ezo places them in the `~/ezo/handlers` subdirectory of the project, where you can add your logic, define your response and return a reply to the contract.  
 
 `ezo gen <contract name>`
+
 
 ### Deploy Contract
 After successfully compiling the contracts, and generating the handlers, it's time deploy the contract to the network using the source hash from the compile step:
@@ -51,12 +55,6 @@ After successfully compiling the contracts, and generating the handlers, it's ti
 
 The targets are set up in the config.json file.  Out of the box, `test-http` is configured for the Ganache GUI HTTP, `test-ws` is configured for Ganache GUI WebSockets.  As many target nodes can be configured as needed.  Once a contract has been debugged and tested on the test network, it can be deployed by simply changing the deployment target on the command line.
 
-### Start ezo
-Start ezo by typing
-
-`ezo start <contract name>` -t <target>
-  
- ezo will begin listening for events.  The handlers will print the output of events as received.  
 
 ### View Contracts
 
@@ -69,11 +67,20 @@ Look for a contract by name or partial name:
 `ezo view contracts Weather`
 `ezo view contracts WeatherOracle`
 
+
 ### View Deployments
 
 To see current deployments
 
 `ezo view deploys`
+
+
+### Start ezo
+Start ezo by typing
+
+`ezo start <contract name>` -t <target>
+  
+ ezo will begin listening for events.  The handlers will print the output of events as received.  
 
 
 ### Run contracts to trigger events with the built-in test client
