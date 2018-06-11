@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ezo",
-    version="0.0.22",
+    version="0.0.23",
     author="Robin A. Gist",
     author_email="robinagist@gmail.com",
     description="ezo - easy Ethereum oracles",

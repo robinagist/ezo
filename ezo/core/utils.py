@@ -56,7 +56,7 @@ def handler(data, contract):
     return template
 
 
-def gen_blank_config_obj():
+def create_blank_config_obj():
 
     template = '''
 {
