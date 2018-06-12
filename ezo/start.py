@@ -2,6 +2,7 @@
 from cement.core.exc import FrameworkError, CaughtSignal
 from core.lib import EZO
 from cli.ezo_cli import EZOApp
+from core.helpers import reset
 
 
 def main():
@@ -32,6 +33,9 @@ def main():
             app.exit_code = 300
 
         finally:
+            # reset terminal
+            print(reset(""))
+
             # Maybe we want to see a full-stack trace for the above
             # exceptions, but only if --debug was passed?
             if app.debug:
