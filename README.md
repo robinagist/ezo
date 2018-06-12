@@ -14,7 +14,9 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 + soon: local and node-hosted keys
 + compiles Solidity and (soon) Vyper contracts
 + choose between WebSockets or HTTPS
-+ built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events.
++ built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events. 
+
+`The image below shows the built-in ezo test client running against another instance of ezo in oracle mode`
 
 ![ezo in action](https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
 
