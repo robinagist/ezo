@@ -78,7 +78,7 @@ To see current deployments
 ### Start ezo
 Start ezo by typing
 
-`ezo start <contract name>` -t <target>
+`ezo start <contract name> -t <target>`
   
  ezo will begin listening for events.  The handlers will print the output of events as received.  
 
@@ -87,7 +87,7 @@ Start ezo by typing
 
 No more having to wrestle with Javascript to test your event responders.  Start ezo, and open another terminal window, and tse the ezo command line to send a test transaction.  
 
-`ezo send tx <contract name> <method name> [data, items, list] -t <target>
+`ezo send tx <contract name> <method name> [data, items, list] -t <target>`
 
 Supply the contract name, method name, a list of data elements, and the deployment target.
 
