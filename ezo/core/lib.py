@@ -207,8 +207,8 @@ class Contract:
 
         try:
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
-            #TODO - proper gas calculation
-            h = {'from': account, 'gas': 4050000}
+            gas_estimate = ct.constructor().estimateGas()
+            h = {'from': account, 'gas': gas_estimate + 1000}
             tx_hash = ct.constructor().transact(h)
             tx_receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
             address = tx_receipt['contractAddress']
@@ -221,6 +221,7 @@ class Contract:
         d["hash"] = self.hash
         d["tx-hash"] = tx_hash
         d["address"] = address
+        d["gas-used"] = tx_receipt["gasUsed"]
         d["target"] = self._ezo.target
         d["timestamp"] = datetime.utcnow()
 
@@ -248,7 +249,7 @@ class Contract:
             while True:
                 for event in event_filter.get_new_entries():
                     if EZO.log:
-                        EZO.log.debug(yellow("event received: {}".format(event)))
+                        EZO.log.debug(bright("event received: {}".format(event)))
                     ContractEvent.handler(event, self)
                 await asyncio.sleep(interval)
         except Exception as e:
@@ -270,11 +271,15 @@ class Contract:
         if "params" not in response_data:
             return None, "params missing from response_data payload"
 
-        tx_dict = dict()
-        tx_dict["gas"] = 50000
+
+
         address = self._ezo.w3.toChecksumAddress(response_data["address"])
-        tx_dict["account"] = get_account(self._ezo.config, self._ezo.target)
-        self._ezo.w3.eth.defaultAccount = tx_dict['account']
+        account = get_account(self._ezo.config, self._ezo.target)
+        self._ezo.w3.eth.defaultAccount = account
+
+        tx_dict = dict()
+        tx_dict["account"] = account
+
 
         if not self.contract_obj:
             try:
@@ -287,8 +292,10 @@ class Contract:
         contract_func = self.contract_obj.functions[method]
         try:
             if not params:
-                tx_hash = contract_func().transact()
+                tx_dict["gas"] = contract_func().estimateGas() + 1000
+                tx_hash = contract_func().transact(tx_dict)
             else:
+                tx_dict["gas"] = contract_func(*params).estimateGas() + 1000
                 tx_hash = contract_func(*params).transact()
 
             receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
