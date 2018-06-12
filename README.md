@@ -10,6 +10,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
 + compile and deploy to multiple networks
 + generates handlers in Python, for easy customization
++ listen for, and respond to multiple events on multiple contracts
 + Web3 1.0 compliant using Web3.py
 + soon: local and node-hosted keys
 + compiles Solidity and (soon) Vyper contracts
