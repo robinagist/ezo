@@ -85,7 +85,13 @@ Start ezo by typing
 
 ### Run contracts to trigger events with the built-in test client
 
-No more having to wrestle with Javascript to test your event responders.  Start ezo, and open another terminal window, and tse the ezo command line to send a test transaction.  For example, run:
+No more having to wrestle with Javascript to test your event responders.  Start ezo, and open another terminal window, and tse the ezo command line to send a test transaction.  
+
+`ezo send tx <contract name> <method name> [data, items, list] -t <target>
+
+Supply the contract name, method name, a list of data elements, and the deployment target.
+
+For example, run:
 
 `ezo send tx WeatherOracle request [] -t test`
 
