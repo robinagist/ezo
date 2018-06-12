@@ -8,7 +8,7 @@ from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
 from core.utils import gen_event_handler_code, create_blank_config_obj
-from core.helpers import cyan, red, yellow, blue
+from core.helpers import cyan, red, yellow, blue, HexJsonEncoder
 from datetime import datetime
 import plyvel, pickle, asyncio, time, os.path, os, inflection, json, ast
 import importlib.util
@@ -417,7 +417,48 @@ class Contract:
 
         return resp, None
 
+    @staticmethod
+    def call(ezo, name, method, data):
+        '''
+        calls a method with data and returns a result without changing the chain state
+        :param ezo:  ezo instance
+        :param name:  name of the Contract
+        :param method:  name of the contract method
+        :param data: formatted data to send to the contract method
+        :return:
+        '''
 
+        # load the contract by name
+        c, err = Contract.get(name, ezo)
+        if err:
+            return None, err
+
+        address, err = Contract.get_address(name, c.hash, ezo)
+        if err:
+            return None, err
+
+        params = c.paramsForMethod(method, data)
+
+        address = ezo.w3.toChecksumAddress(address)
+        ezo.w3.eth.defaultAccount = get_account(ezo.config, ezo.target)
+
+        if not c.contract_obj:
+            try:
+                c.contract_obj = ezo.w3.eth.contract(address=address, abi=c.abi)
+            except Exception as e:
+                return None, e
+
+        contract_func = c.contract_obj.functions[method]
+        try:
+            if not params:
+                result = contract_func().call()
+            else:
+                result = contract_func(*params).call()
+
+        except Exception as e:
+            return None, "error executing call: {}".format(e)
+
+        return result, None
 
 
     @staticmethod
@@ -643,6 +684,7 @@ class DB:
         if isinstance(key, str):
             key = bytes(key, 'utf=8')
 
+
         _, err = self.open()
         if err:
             return None, err
@@ -685,6 +727,7 @@ class DB:
         except Exception as e:
             return None, e
         self.close()
+
         return obj, None
 
     def find(self, keypart):
