@@ -8,7 +8,7 @@ from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
 from core.utils import gen_event_handler_code, create_blank_config_obj
-from core.helpers import cyan, red, yellow, blue, HexJsonEncoder
+from core.helpers import cyan, red, yellow, blue, bright, magenta, reset, HexJsonEncoder
 from datetime import datetime
 import plyvel, pickle, asyncio, time, os.path, os, inflection, json, ast
 import importlib.util
@@ -239,7 +239,7 @@ class Contract:
         :return:
         '''
 
-        print(cyan("listening to address: {}".format(address)))
+        EZO.log.info(bright("hello ezo::listening to address: {}".format(blue(address))))
         interval = self._ezo.config["poll-interval"]
 
         event_filter = self._ezo.w3.eth.filter({"address": address, "toBlock": "latest"})
@@ -350,7 +350,7 @@ class Contract:
                 # create event handler scaffold in python
                 try:
                     with open(eh, "w+") as f:
-                        f.write(gen_event_handler_code())
+                        f.write(gen_event_handler_code(event_name))
 
                 except Exception as e:
                     print(red("gen error: {}".format(e)))
@@ -684,17 +684,16 @@ class DB:
         if isinstance(key, str):
             key = bytes(key, 'utf=8')
 
-
-        _, err = self.open()
-        if err:
-            return None, err
-
         if not overwrite:
             a, err = self.get(key)
             if err:
                 return None, err
             if a:
                 return None, "{} already exists ".format(key)
+
+        _, err = self.open()
+        if err:
+            return None, err
 
         if serialize:
             value = pickle.dumps(value)
@@ -718,6 +717,7 @@ class DB:
         try:
             val = DB.db.get(key)
             if not val:
+                self.close()
                 return None, None
             if deserialize:
                 obj = pickle.loads(val)

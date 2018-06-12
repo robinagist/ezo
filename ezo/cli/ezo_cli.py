@@ -9,10 +9,9 @@ use at your own risk
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract
-from core.helpers import get_contract_path, red, green, cyan, yellow, blue
+from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
 from core.utils import create_ethereum_account, create_blank_config_obj
-from core.views import get_contracts, view_contracts, get_deploys, view_deploys
-import json
+from core.views import get_contracts, view_contracts, get_deploys, view_deploys, display_deployment_rows, display_contract_rows
 
 
 class EZOBaseController(CementBaseController):
@@ -195,7 +194,7 @@ class EZOViewController(CementBaseController):
         description = "view contracts and deployments"
         arguments = [
             (['term'],
-             dict(action='store', nargs='*'))
+             dict(action='store', nargs="?"))
         ]
 
     @expose(help="view contracts")
@@ -211,10 +210,12 @@ class EZOViewController(CementBaseController):
 
         v = view_contracts(res)
         print()
+        print(bright(blue("+-------+")))
         for vs in v:
             print(yellow(vs))
-        print()
+        print(blue("+------------+"))
         print(yellow("ezo contracts: {}".format(len(res))))
+        print(reset(""))
         exit(0)
 
     @expose(help="view deploys")
@@ -228,10 +229,12 @@ class EZOViewController(CementBaseController):
             exit(1)
         v = view_deploys(res)
         print()
+        print(bright(blue("+-------+")))
         for vs in v:
             print(yellow(vs))
-        print()
-        print(yellow("ezo deployments: {}".format(len(res))))
+        print(blue("+--------------+"))
+        print(yellow("ezo deployments: {}".format(bright(len(res)))))
+        print(reset(""))
         exit(0)
 
 
@@ -303,12 +306,12 @@ class EZOTestClientController(CementBaseController):
             self.app.log.error(red("tx error: {}".format(err)))
             exit(1)
 
-
         self.app.log.info(blue("=============="))
         self.app.log.info(blue(resp))
         for k, v in resp.items():
             self.app.log.info("{}: {}".format(yellow(k), cyan(v)))
         self.app.log.info(blue("=============="))
+
 
 
     @expose(help="call a method on the local node without changing the blockchain state")

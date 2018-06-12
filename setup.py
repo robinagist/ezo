@@ -15,7 +15,7 @@ setuptools.setup(
     url="https://github.com/robinagist/ezo",
     scripts=['ezo/start.py'],
     package_dir = {'': 'ezo'},
-    packages=['core', 'cli'], #setuptools.find_packages(where='.'),
+    packages=['core', 'cli'],
     include_package_data=True,
     python_requires='>=3.6',
     classifiers=(
