@@ -39,5 +39,15 @@ def view_deploys(results):
     return l
 
 
+def display_deployment_rows(rows):
+    for row in rows:
+        print("{12:} - {20} - {35} - {15} - {20}".format(row["contact-name"], row["hash"], row["address"], row["target"], row["timestamp"]))
+    print("total deployments: {}".format(len(rows)))
+
+
+def display_contract_rows(rows):
+    for row in rows:
+        print("{0} - {1} - {2}".format(row['name'], row['hash'], row['timestamp']))
+    print("total contracts: {}".format(len(rows)))
 
 

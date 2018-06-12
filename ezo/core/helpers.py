@@ -71,16 +71,7 @@ def get_topic_sha3(event_block):
     return sig
 
 
-def display_deployment_rows(rows):
-    for row in rows:
-        print("{} - {} - {} - {} - {}".format(row["contact-name"], row["hash"], row["address"], row["target"], row["timestamp"]))
-    print("total deployments: {}".format(len(rows)))
 
-
-def display_contract_rows(rows):
-    for row in rows:
-        print("{} - {} - {}".format(row['name'], row['hash'], row['timestamp']))
-    print("total contracts: {}".format(len(rows)))
 
 
 ### text tools

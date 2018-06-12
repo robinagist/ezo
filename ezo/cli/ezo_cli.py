@@ -12,6 +12,7 @@ from core.lib import Contract
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue
 from core.utils import create_ethereum_account, create_blank_config_obj
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
+import json
 
 
 class EZOBaseController(CementBaseController):
@@ -300,7 +301,10 @@ class EZOTestClientController(CementBaseController):
 
         if err:
             self.app.log.error(red("tx error: {}".format(err)))
-        self.app.log.info(cyan("response: {}".format(resp)))
+        self.app.log.info(blue("=============="))
+        for k, v in resp.items():
+            self.app.log.info("{}: {}".format(yellow(k), cyan(v)))
+        self.app.log.info(blue("=============="))
 
 
     @expose(help="call a method on the local node without changing the blockchain state")
