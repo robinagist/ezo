@@ -92,3 +92,8 @@ No more having to wrestle with Javascript to test your event responders.  Start 
 To send a transaction with no parameters to the contract's `request` method on the test network.  This emits an event that the WeatherOracle running under ezo will pick up, and respond. 
 
 ![ezo built in test client makes event testing easy](https://user-images.githubusercontent.com/1685659/41264445-9b445b80-6da1-11e8-80f6-2e64fbc4e69f.png)
+
+To call a method, without changing the state of the chain, use the `send call` command
+`ezo send call WeatherOracle fill [55] -t test`
+
+Useful for checking values after transactions.
