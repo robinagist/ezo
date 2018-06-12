@@ -301,7 +301,11 @@ class EZOTestClientController(CementBaseController):
 
         if err:
             self.app.log.error(red("tx error: {}".format(err)))
+            exit(1)
+
+
         self.app.log.info(blue("=============="))
+        self.app.log.info(blue(resp))
         for k, v in resp.items():
             self.app.log.info("{}: {}".format(yellow(k), cyan(v)))
         self.app.log.info(blue("=============="))
@@ -309,7 +313,37 @@ class EZOTestClientController(CementBaseController):
 
     @expose(help="call a method on the local node without changing the blockchain state")
     def call(self):
-        pass
+        params = self.app.pargs.c_args
+        ezo = self.app.ezo
+        args = self.app.pargs
+        log = self.app.log
+
+        if not args.target:
+            log.error("target must be set with the -t option before deploying")
+            exit(2)
+        ezo.target = args.target
+
+        _, err = ezo.dial()
+        if err:
+            log.error(red("error with node: {}".format(err)))
+            exit(1)
+
+        if len(params) != 3:
+            self.app.log.error(red("missing parameters for send tx - 3 required"))
+            exit(1)
+
+        name = params[0]
+        method = params[1]
+        data = params[2]
+
+        resp, err = Contract.call(ezo, name, method, data)
+
+        if err:
+            self.app.log.error(red("call error: {}".format(err)))
+            exit(1)
+
+        self.app.log.info(blue("call response: {}".format(yellow(resp))))
+        exit(0)
 
 
 
