@@ -35,8 +35,10 @@ from core.helpers import red, cyan, yellow, magenta, blue
 from core.lib import EZO
 from datetime import datetime
 
+'''
 
-event_name = 'request_filled'    
+    template += "event_name = '{}'".format(event_name)
+    template += '''
 
 
 def handler(data, contract):
