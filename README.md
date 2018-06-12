@@ -16,6 +16,8 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 + choose between WebSockets or HTTPS
 + built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events.
 
+!(https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
+
 #### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  On schedule for 0.2alpha release in mid June
 
 
