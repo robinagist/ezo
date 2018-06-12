@@ -291,11 +291,11 @@ class Contract:
             else:
                 tx_hash = contract_func(*params).transact()
 
-            self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
+            receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
         except Exception as e:
             return None, "error executing transaction: {}".format(e)
 
-        return tx_hash, None
+        return receipt, None
 
     def save(self, overwrite=False):
 
@@ -355,6 +355,7 @@ class Contract:
                 except Exception as e:
                     print(red("gen error: {}".format(e)))
                     errors.append(e)
+                    continue
 
             #  map the topic to the handler
             self.te_map[topic] = eh
@@ -600,6 +601,9 @@ class DB:
     '''
     data storage abstraction layer for LevelDB
 
+    note:  the db is opened and closed on demand.  this allows multiple applications to use the same
+    DB at the same time.  a pseudo lock-wait mechanism is implemented in open.
+
     '''
 
     db = None
@@ -607,15 +611,9 @@ class DB:
     dbpath = None
 
     def __init__(self, project, dbpath=None):
-        if not dbpath:
-            DB.dbpath = '/tmp/ezodb/'
-        else:
-            DB.dbpath = dbpath
-        if not project:
-            DB.project = 'ezo_project_default'
-        else:
-            DB.project = project
 
+        DB.dbpath = dbpath if dbpath else '/tmp/ezodb/'
+        DB.project = project if project else 'ezo_project_default'
 
     def open(self):
         '''
