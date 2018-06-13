@@ -1,6 +1,6 @@
 # ezo 
 
-## Build Oracles and Event Responders on Ethereum Fast -- And Using Python!
+## Quickly Build Oracles and Event Responders on Ethereum -- And Using Python!
 ### (13 June 2018) - now in alpha!
 
 `ezo` (pronounced `eh-zoh`) makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
@@ -8,7 +8,7 @@
 Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multiple deployment targets.  Start out testing with Ganache on your local machine, later move to the test net and then the mainnet, by simply specifying the target at deployment time.
 
 #### thank you
-`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  It makes use of `solc`, the Solidity compiler, and soon the Vyper compiler.  To the folks that built those tools, and to the others who both necessitated the need for things such as `ezo`, and who also provided the pieces of the puzzle that made the project happen:  thank you.  `ezo` is dedicated to you, the open source community.  You rule the world.
+`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  It makes use of `solc`, the Solidity compiler, and soon the Vyper compiler.  To the folks that built those tools, and to the others who both necessitated the need for things such as `ezo`, and who also provided the pieces of the puzzle that made the project happen:  thank you.  `ezo` is dedicated to you, the open source community.  You move the world forward.
 
 ## v 0.1a Features 
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
