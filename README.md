@@ -6,7 +6,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 `ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`. Contract and deployment state is maintained in `LevelDB`.
 
-## v 0.2a Features (scheduled for release in mid-June 2018)
+## v 0.1a Features (scheduled for release in mid-June 2018)
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
 + compile and deploy to multiple networks
 + generates handlers in Python, for easy customization
@@ -21,17 +21,44 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 ![ezo in action](https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
 
-#### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  On schedule for 0.2alpha release in mid June
+#### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  On schedule for 0.1alpha release in mid June
 
 
-### Install (coming mid June 2018)
+### Install and Make A Project
 
-0.  Install dependencies:  `Python 3.6` and `LevelDB`.  `Virtualenv` is also highly recommended for `ezo`.
-1.  (pip install coming soon)
-2.  
+To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it, and you won't have to mess with configuration right now.  Just use the `test` target (more on that later).
 
+#### First five minutes
+0.  Install dependencies:  
+    + `Python 3.6`
+    + `LevelDB`.  
+    + `Virtualenv`
+    + `solc` Solidity compiler
+1. create Virtualenv and start
+2. Install ezo with `pip install ezo`
+3. create the ezo project with `ezo create <project name>`.  Put in any name you like.
+4. now, compile one of the test Solidity contracts: `ezo compile contract1.sol`
+5. The name of the sample contract is `TemperatureOracle`.  
+   We'll create the handlers for it, and register to events: `ezo gen handlers TemperatureOracle`
+   (if you look in the `handlers` subdirectory, you'll see a `temperature_oracle` directory, containing two Python handlers that
+   are ready for code.)
+6. Back in the project directory, we want to see our contract.  `ezo view contracts` will show us our contract.
+7. With Ganache GUI running on port 7545, we'll deploy our contract.  In `ezo.conf`, Ganache is already configured as
+   the `test` target with a default Ganache account, using HTTPS, so we're ready to go.   
+   `ezo deploy TemperatureOracle -t test`
+8. Let's look at our deployed contract with `ezo view deploys`.  We should see our contract there.
+9. ezo is ready to start listening for the two events on the TemperatureOracle:  `ezo start TemperatureOracle -t test`
 
-### Quick Start
+#### Now, ezo's built-in test client
+1. With ezo running, open another terminal window and navigate to the project's base directory
+2. start up your Virtualenv environment
+3. We're going to send a transaction to the TemperatureOracle's `request` method.  It has no parameters.  However, it fires an
+   event that will show up as received by ezo in the oracle terminal:  `ezo send tx TemperatureOracle request [] -t test`
+4. You should see an event show up in the other terminal display, while the test client screen should fill up with transaction data.
+
+Now, you can customize the oracle with Python code in just the handler.  There is code to help you quickly wire up event responses.
+
+### Commands and Stuff
 
 ### Create the project 
 `ezo` creates the initial project directory and starter configuration.  There are even sample contracts that you can compile, deploy and use immediately.
