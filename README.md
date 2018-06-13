@@ -96,11 +96,6 @@ To view contracts after compilation:
 
 `ezo view contracts`
 
-Look for a contract by name or partial name:
-
-`ezo view contracts Weather`
-`ezo view contracts WeatherOracle`
-
 
 ### View Deployments
 
