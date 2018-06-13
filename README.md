@@ -7,7 +7,8 @@
 
 Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multiple deployment targets.  Start out testing with Ganache on your local machine, later move to the test net and then the mainnet, by simply specifying the target at deployment time.
 
-`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`. Contract and deployment state is maintained in `LevelDB`.
+### thank you
+`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  To folks that built the tools that both necessitated the need for tools such as `ezo`, and also provided the pieces of the puzzle that made it happen:  thank you.  `ezo` is dedicated to you, the open source community.
 
 ## v 0.1a Features 
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
@@ -72,7 +73,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 7. With Ganache GUI running on port 7545, we'll deploy our contract.  In `ezo.conf`, Ganache is already configured as
    the `test` target with a default Ganache account, using HTTPS, so we're ready to go.
    
-   `ezo deploy TemperatureOracle -t test`
+   `ezo deploy TemperatureOracle -target=test`
 
 8. Let's look at our deployed contract with 
 
@@ -82,7 +83,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 
 9. ezo is ready to start listening for the two events on the TemperatureOracle:  
 
-   `ezo start TemperatureOracle -t test`
+   `ezo start TemperatureOracle --target=test`
 
 
 #### Now, ezo's built-in test client
@@ -93,7 +94,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 
 3. We're going to send a transaction to the TemperatureOracle's `request` method.  It has no parameters, so we'll just pass an empty list.  Sending the transaction fires an event that will show up as received in the ezo oracle terminal:  
    
-   `ezo send tx TemperatureOracle request [] -t test`
+   `ezo send tx TemperatureOracle request [] --target=test`
 
 4. You should see an event show up in the other terminal display, while the test client screen should fill up with transaction data.
 
@@ -125,7 +126,7 @@ ezo generates handlers for each event in the contract, and attach the hashed eve
 ### Deploy Contract
 After successfully compiling the contracts, and generating the handlers, it's time deploy the contract to the network using the source hash from the compile step:
 
-`ezo deploy <contract name> -t <target>`
+`ezo deploy <contract name> --target=<target>`
 
 The targets are set up in the config.json file.  Out of the box, `test-http` is configured for the Ganache GUI HTTP, `test-ws` is configured for Ganache GUI WebSockets.  As many target nodes can be configured as needed.  Once a contract has been debugged and tested on the test network, it can be deployed by simply changing the deployment target on the command line.
 
@@ -147,7 +148,7 @@ To see current deployments
 ### Start ezo
 Start ezo by typing
 
-`ezo start <contract name> -t <target>`
+`ezo start <contract name> --target=<target>`
   
  ezo will begin listening for events.  The handlers will print the output of events as received.  
 
@@ -156,13 +157,13 @@ Start ezo by typing
 
 No more having to wrestle with Javascript to test your event responders.  Start ezo, and open another terminal window, and tse the ezo command line to send a test transaction.  
 
-`ezo send tx <contract name> <method name> [data, items, list] -t <target>`
+`ezo send tx <contract name> <method name> [data, items, list] --target=<target>`
 
 Supply the contract name, method name, a list of data elements, and the deployment target.
 
 For example, run:
 
-`ezo send tx WeatherOracle request [] -t test`
+`ezo send tx WeatherOracle request [] --target=test`
 
 To send a transaction with no parameters to the contract's `request` method on the test network.  This emits an event that the WeatherOracle running under ezo will pick up, and respond. 
 
@@ -170,6 +171,6 @@ To send a transaction with no parameters to the contract's `request` method on t
 
 To call a method, without changing the state of the chain, use the `send call` command
 
-`ezo send call WeatherOracle fill [55] -t test`
+`ezo send call WeatherOracle fill [55] --target=test`
 
 Useful for checking values after transactions.
