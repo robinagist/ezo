@@ -26,7 +26,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 #### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node keys, or Ganache keys.  
 
-### Install and Make A Project
+### Install and Make A Project!!!
 
 To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it, and you won't have to mess with configuration right now.  Just use the `test` target (more on that later).
 
@@ -38,7 +38,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
     + `solc` Solidity compiler
 1. create Virtualenv and start
 2. Install ezo with `pip install ezo`
-3. create the ezo project with `ezo create <project name>`.  Put in any name you like.
+3. create the ezo project with `ezo create <project name>`.  Put in any name you like.  CD into the project directory.
 4. now, compile one of the test Solidity contracts: `ezo compile contract1.sol`
 5. The name of the sample contract is `TemperatureOracle`.  
    We'll create the handlers for it, and register to events: `ezo gen handlers TemperatureOracle`
