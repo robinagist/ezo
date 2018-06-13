@@ -1,7 +1,6 @@
 # ezo 
 
-## the easy oracle development toolset for Python
-
+## the easy Ethereum oracle development toolset for Python 
 ### now in alpha!
 
 `ezo` makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
