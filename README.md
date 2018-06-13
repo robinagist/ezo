@@ -16,7 +16,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 + compiles Solidity and (soon) Vyper contracts
 + choose between WebSockets or HTTPS
 + built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events. 
-+ asychronous, single-threaded.  no multiprocess weirdness or hoops.
++ asychronous, single-threaded.  no multiprocess witchcraft to deal with.
 
 `The image below shows the built-in ezo test client running against another instance of ezo in oracle mode`
 
