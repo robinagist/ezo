@@ -90,7 +90,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 
 1. With ezo running, open another terminal window and navigate to the project's base directory
 
-2. start up your Virtualenv environment
+2. start up Virtualenv
 
 3. We're going to send a transaction to the TemperatureOracle's `request` method.  It has no parameters, so we'll just pass an empty list.  Sending the transaction fires an event that will show up as received in the ezo oracle terminal:  
    
