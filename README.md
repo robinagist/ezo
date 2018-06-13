@@ -8,7 +8,7 @@
 Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multiple deployment targets.  Start out testing with Ganache on your local machine, later move to the test net and then the mainnet, by simply specifying the target at deployment time.
 
 #### thank you
-`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  To folks that built the tools that both necessitated the need for tools such as `ezo`, and also provided the pieces of the puzzle that made it happen:  thank you.  `ezo` is dedicated to you, the open source community.  You rule the world.
+`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  To folks that built those tools, and the others that both necessitated the need for things such as `ezo`, and also provided the pieces of the puzzle that made it happen:  thank you.  `ezo` is dedicated to you, the open source community.  You rule the world.
 
 ## v 0.1a Features 
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
