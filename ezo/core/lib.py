@@ -7,7 +7,8 @@ library for ezo
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
-from core.utils import gen_event_handler_code, create_blank_config_obj
+from core.utils import gen_event_handler_code, create_blank_config_obj, \
+    create_sample_contracts_1, create_sample_contracts_2
 from core.helpers import cyan, red, yellow, blue, bright, magenta, reset, HexJsonEncoder
 from datetime import datetime
 import plyvel, pickle, asyncio, time, os.path, os, inflection, json, ast
@@ -30,6 +31,8 @@ class EZO:
     DEPLOYED = "DEPLOYED"
 
     def __init__(self, config, w3=False):
+        if not config:
+            return
         self.config = config
         self.target = None
         self.w3 = None
@@ -103,7 +106,7 @@ class EZO:
             )
 
     @staticmethod
-    def create_project(name):
+    def create_project(name, include_examples=True):
         '''
         creates the initial project skeleton and files
         :param name: the project name
@@ -115,32 +118,52 @@ class EZO:
         if os.path.exists(path):
             return None, "path {} already exists".format(path)
 
+        print(bright("creating new ezo project '{}".format(name)))
+
         # make project directory
-        os.makedev(path)
+        os.mkdir(path)
+        print(bright("created project directory: '{}".format(path)))
 
         # create an empty contracts directory
         contracts_dir = "{}/{}".format(path, "contracts")
-        os.makedev(contracts_dir)
+        os.mkdir(contracts_dir)
+        print(bright("created contract directory: '{}".format(contracts_dir)))
 
-        # TODO if --include_examples switch, copy example scripts
+        if include_examples:
+            c = [(create_sample_contracts_1(), 'contract1.sol'), (create_sample_contracts_2(), 'contract2.sol')]
+            for s in c:
+                c, fn = s
+                file_path = "{}/{}".format(contracts_dir, fn)
+                try:
+                    with open(file_path, "w+") as outfile:
+                        outfile.write(c)
+                except Exception as e:
+                    print(bright("problem creating sample file: '{}".format(path)))
+                    return None, e
+                print(bright("created sample contract: '{}".format(fn)))
+
 
         # create the handlers directory
         handlers_dir = "{}/{}".format(path, "handlers")
-        os.makedev(handlers_dir)
+        os.mkdir(handlers_dir)
+        print(bright("created handlers directory: '{}".format(handlers_dir)))
 
         # create the initial config.json file
         cfg = create_blank_config_obj()
-        cfg["contract-dir"] = contracts_dir
-        cfg["handlers-dir"] = handlers_dir
-        cfg["project-name"] = name
+        cfg["ezo"]["contract-dir"] = contracts_dir
+        cfg["ezo"]["handlers-dir"] = handlers_dir
+        cfg["ezo"]["project-name"] = name
+        print(bright("creating configuration: '{}".format(path)))
 
         # write the file to the root project dir
-        config_file_path = "{}/{}".format(path, "config.json")
+        config_file_path = "{}/{}".format(path, "ezo.conf")
         try:
             with open(config_file_path, "w+") as outfile:
-                json.dump(cfg, outfile)
+                json.dump(cfg, outfile, indent=2)
         except Exception as e:
+            print(bright("problem creating configuration file: '{}".format(path)))
             return None, e
+
         return None, None
 
 
@@ -379,7 +402,6 @@ class Contract:
         is used by the SEND and CALL commands, so that method parameters can be typed in easily from the
         command line.  it uses the contract ABI for reference
 
-        :param method: the contract method to call (case sensitive)
         :param data: STRING - an ordered list of method parameters enclosed in quotes (e.g. "['bob',27]")
         matching the signature of the contract method
 
@@ -392,8 +414,8 @@ class Contract:
         return v
 
 
-    @classmethod
-    def send(cls, ezo, name, method, data):
+    @staticmethod
+    def send(ezo, name, method, data):
         '''
         runs a transaction on a contract method
         :param ezo:  ezo instance
@@ -650,7 +672,7 @@ class DB:
     data storage abstraction layer for LevelDB
 
     note:  the db is opened and closed on demand.  this allows multiple applications to use the same
-    DB at the same time.  a pseudo lock-wait mechanism is implemented in open.
+    DB at the same time.  a pseudo lock-wait mechanism is implemented in open (this is a short-term solution).
 
     '''
 

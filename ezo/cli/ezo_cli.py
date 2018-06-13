@@ -8,9 +8,9 @@ use at your own risk
 
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
-from core.lib import Contract
+from core.lib import Contract, EZO
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
-from core.utils import create_ethereum_account, create_blank_config_obj
+from core.utils import create_ethereum_account
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys, display_deployment_rows, display_contract_rows
 
 
@@ -249,12 +249,23 @@ class EZOCreateController(CementBaseController):
         description = "create projects or accounts"
         arguments = [
             (['term'],
-             dict(action='store', nargs='*'))
+             dict(action='store', nargs='?'))
         ]
 
     @expose(help="generate a new local Ethereum account")
     def account(self):
         create_ethereum_account()
+
+
+    @expose(help="the first step in every ezo project")
+    def project(self):
+        res, err = EZO.create_project(self.app.pargs.term)
+        if err:
+            print(err)
+            exit(1)
+        print(bright(blue("new ezo project '{}' created".format(self.app.pargs.term))))
+        print(reset(""))
+        exit(0)
 
 
 class EZOTestClientController(CementBaseController):
@@ -295,23 +306,20 @@ class EZOTestClientController(CementBaseController):
             exit(1)
 
 
-
         name = params[0]
         method = params[1]
         data = params[2]
 
         resp, err = Contract.send(ezo, name, method, data)
-
         if err:
             self.app.log.error(red("tx error: {}".format(err)))
             exit(1)
 
-        self.app.log.info(blue("=============="))
-        self.app.log.info(blue(resp))
+        self.app.log.info(bright(blue("==============")))
         for k, v in resp.items():
             self.app.log.info("{}: {}".format(yellow(k), cyan(v)))
         self.app.log.info(blue("=============="))
-
+        self.app.log.info(reset(""))
 
 
     @expose(help="call a method on the local node without changing the blockchain state")
