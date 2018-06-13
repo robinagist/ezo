@@ -25,6 +25,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 ![ezo in action](https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
 
+#### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node keys, or Ganache keys.  
 
 ### Install and Make A Project
 
