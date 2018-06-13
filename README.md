@@ -1,4 +1,8 @@
-# ezo -- easily create Ethereum oracles
+# ezo 
+
+## the easy oracle development toolset for Python
+
+### now in alpha!
 
 `ezo` makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
 
@@ -6,7 +10,7 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 
 `ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`. Contract and deployment state is maintained in `LevelDB`.
 
-## v 0.1a Features (scheduled for release in mid-June 2018)
+## v 0.1a Features 
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
 + compile and deploy to multiple networks
 + generates handlers in Python, for easy customization
@@ -20,8 +24,6 @@ Inspired by AWS toolsets, `ezo` allows for multiple deployment targets.  Start o
 `The image below shows the built-in ezo test client running against another instance of ezo in oracle mode`
 
 ![ezo in action](https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
-
-#### update (June 05 2018) - create an oracle with a contract and a few commands, including generating handlers for contract events.  On schedule for 0.1alpha release in mid June
 
 
 ### Install and Make A Project
