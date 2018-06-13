@@ -1,6 +1,6 @@
 # ezo 
 
-## Quickly Build Oracles and Event Responders on Ethereum -- And Using Python!
+## Quickly Build Oracles and Event Responders on Ethereum using Python!
 ### (13 June 2018) - now in alpha!
 
 `ezo` (pronounced `eh-zoh`) makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
