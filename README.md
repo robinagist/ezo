@@ -46,11 +46,11 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 
    `ezo create <project name>`
    
-   Put in any name you like.  We'll use `my_proj`:
+   Put in any name you like.  We'll use `MyEzo`:
    
-   `ezo create my_proj`
+   `ezo create MyEzo`
 
-   Then, just `cd` into the project directory.
+   Then `cd` into the project directory.
 
 4. now, compile one of the test Solidity contracts (contract1.sol and contract2.sol): 
 
