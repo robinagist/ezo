@@ -73,7 +73,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 7. With Ganache GUI running on port 7545, we'll deploy our contract.  In `ezo.conf`, Ganache is already configured as
    the `test` target with a default Ganache account, using HTTPS, so we're ready to go.
    
-   `ezo deploy TemperatureOracle -target=test`
+   `ezo deploy TemperatureOracle --target=test`
 
 8. Let's look at our deployed contract with 
 
