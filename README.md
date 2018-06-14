@@ -44,11 +44,11 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 
 3. create the ezo project with 
 
-   `ezo create <project name>`
+   `ezo create project <project name>`
    
    Put in any name you like.  We'll use `MyEzo`:
    
-   `ezo create MyEzo`
+   `ezo create project MyEzo`
 
    Then `cd` into the project directory.
 
@@ -106,7 +106,7 @@ Now, you can customize the oracle with Python code in just the handler.  There i
 #### Create the project 
 `ezo` creates the initial project directory and starter configuration.  There are even sample contracts that you can compile, deploy and use immediately.
 
-`ezo create <project_name>` 
+`ezo create project <project_name>` 
 
 
 ### Compile the source file
