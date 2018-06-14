@@ -21,9 +21,9 @@ Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multip
 + built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events. 
 + asychronous, single-threaded.  no multiprocess witchcraft to deal with.
 
-`The image below shows the built-in ezo test client running against another instance of ezo in oracle mode`
-
 ![ezo in action](https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
+##### ezo test client running against another instance of ezo in oracle mode
+
 
 #### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node keys, or Ganache keys.  
 
@@ -96,7 +96,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
    
    `ezo send tx TemperatureOracle request [] --target=test`
 
-4. You should see an event show up in the other terminal display, while the test client screen should fill up with transaction data.
+4. You should see an event show up in the other terminal display, while the test client screen should fill up with transaction data (see image above).
 
 Now, you can customize the oracle with Python code in just the handler.  There is code to help you quickly wire up event responses.
 
