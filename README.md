@@ -100,4 +100,7 @@ To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it,
 
 Now, you can customize the oracle with Python code in just the handler.  There is code to help you quickly wire up event responses.
 
+---
+Check out the Wiki for more information
+
 
