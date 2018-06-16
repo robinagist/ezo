@@ -56,6 +56,10 @@ class EZO:
                 self.w3 = Web3(WebsocketProvider(url))
             elif url.startswith('http'):
                 self.w3 = Web3(HTTPProvider(url))
+            elif url.endswith('ipc'):
+                if url == 'ipc':
+                    url = None
+                self.w3 = Web3(Web3.IPCProvider(url))
 
         except Exception as e:
             return None, e
