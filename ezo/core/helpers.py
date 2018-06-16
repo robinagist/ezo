@@ -1,6 +1,8 @@
-import xxhash
-import json
+import json, xxhash
 from hexbytes import HexBytes
+from datetime import datetime
+
+
 
 class HexJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -79,7 +81,6 @@ def get_topic_sha3(event_block):
     sig += ")"
 
     return sig
-
 
 
 
