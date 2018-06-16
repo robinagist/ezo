@@ -222,11 +222,14 @@ class Contract:
 
         # see if a deployment already exists for this contract on this target
         if not overwrite:
-            _, err = self._ezo.db.get(key)
+            res, err = self._ezo.db.get(key)
             if err:
-                return None, "deployment on {} already exists for contract {}".format(self._ezo.target, self.hash)
+                return None, "ERROR: Contract.deployment() {}".format(err)
+            if res:
+                return None, "deployment on {} already exists for contract {} use '--overwrite' to force".format(self._ezo.target, self.hash)
 
-        account = get_account(self._ezo.config, self._ezo.target)
+        # TODO - toChecksumAddress should probably be an optional setting or option on the command-line
+        account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
 
         try:
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
@@ -606,8 +609,8 @@ class Catalog:
     '''
     a filesystem catalog for ABIs
 
-    motivation:  LevelDB is a single user DB.  Which means when the test client is executed againt a contact
-    while ezo is running as an oracle, it cannot get access to contract ABI information it needs to make
+    motivation:  LevelDB is a single user DB.  Which means when the test client is executed against a contract
+    while ezo is running as an oracle, it cannot get access to contract ABI information. it needs to make
     a contract call without having to recompile the contract itself.  When ezo compiles a contract, it will save
     the ABI to this filesystem catalog, so that the test client can access them while ezo runs as an oracle
     in another process.

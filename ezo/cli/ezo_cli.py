@@ -11,7 +11,7 @@ from cement.core.controller import CementBaseController, expose
 from core.lib import Contract, EZO
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
 from core.utils import create_ethereum_account
-from core.views import get_contracts, view_contracts, get_deploys, view_deploys, display_deployment_rows, display_contract_rows
+from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 
 
 class EZOBaseController(CementBaseController):

@@ -1,6 +1,7 @@
 
 from core.lib import Contract, EZO, DB
 from core.helpers import cyan, red, yellow, bright, blue, magenta
+from datetime import datetime
 
 
 
@@ -52,5 +53,12 @@ def display_contract_rows(rows):
     for row in rows:
         print("{0} - {1} - {2}".format(row['name'], row['hash'], row['timestamp']))
     print("total contracts: {}".format(len(rows)))
+
+
+def event_output(contract, event_name, data):
+    ts = datetime.utcnow()
+    EZO.log.info(("event: {:25s} contract: {:35s} address {:40s} timestamp: {:25s}").
+                 format(yellow(event_name), magenta(contract.name.replace("<stdin>:", "")), blue(data.address), magenta(ts)))
+
 
 
