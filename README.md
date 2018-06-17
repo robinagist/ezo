@@ -17,7 +17,7 @@ Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multip
 + listen for, and respond to multiple events on multiple contracts
 + Web3 1.0 using Web3.py
 + compiles Solidity and (soon) Vyper contracts
-+ choose between WebSockets or HTTPS
++ choose between IPC, WebSockets or HTTPS
 + built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events. 
 + asychronous, single-threaded.  no multiprocess witchcraft to deal with.
 
