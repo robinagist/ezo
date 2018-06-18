@@ -3,6 +3,8 @@ pragma solidity ^0.4.21;
 // Weather Oracle contract for Medium.com article
 // use at your own risk
 //
+//
+//
 contract WeatherOracle {
 
     address public owner;
@@ -11,6 +13,8 @@ contract WeatherOracle {
 
     event TempRequest(address sender);
     event FilledRequest(uint rtemp);
+    event Farty(uint tt);
+    event Toob();
 
     function constructor() public {
         temp = 0;
@@ -25,6 +29,12 @@ contract WeatherOracle {
     function fill(uint rtemp) public returns (uint){
         temp = rtemp;
         emit FilledRequest(rtemp);
+        return temp;
+    }
+
+    function getTemp() public returns (uint) {
+        emit Farty(1);
+        emit Toob();
         return temp;
     }
 
