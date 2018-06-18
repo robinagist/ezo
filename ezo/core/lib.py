@@ -49,7 +49,10 @@ class EZO:
         :returns: provider, error
         '''
         if not url:
-            url = get_url(self.config, self.target)
+            try:
+                url = get_url(self.config, self.target)
+            except:
+                return None, "no configuration for target '{}'".format(self.target)
 
         try:
             if url.startswith('ws'):
@@ -240,9 +243,8 @@ class Contract:
         # TODO - toChecksumAddress should probably be an optional setting or option on the command-line
         account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
         self._ezo.w3.eth.accounts[0] = account
-
+        u_state = self._ezo.w3.personal.unlockAccount(account, password)
         try:
-            u_state = self._ezo.w3.personal.unlockAccount(account, password)
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
             gas_estimate = ct.constructor().estimateGas()
             h = {'from': account, 'gas': gas_estimate + 1000}
