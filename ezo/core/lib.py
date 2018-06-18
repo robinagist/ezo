@@ -58,6 +58,7 @@ class EZO:
                 self.w3 = Web3(HTTPProvider(url))
             elif url.endswith('ipc'):
                 if url == 'ipc':
+                    print('ipc')
                     url = None
                 self.w3 = Web3(Web3.IPCProvider(url))
 
@@ -108,6 +109,8 @@ class EZO:
             loop.run_until_complete(
                 asyncio.gather(*contract_listeners)
             )
+        else:
+            return None, "unable to start contract listeners"
 
     @staticmethod
     def create_project(name, include_examples=True):
@@ -224,6 +227,8 @@ class Contract:
         name = self.name.replace('<stdin>:', "")
         key = DB.pkey([EZO.DEPLOYED, name, self._ezo.target, self.hash])
 
+        password = os.environ['EZO_PASSWORD'] if 'EZO_PASSWORD' in os.environ else None
+
         # see if a deployment already exists for this contract on this target
         if not overwrite:
             res, err = self._ezo.db.get(key)
@@ -234,8 +239,10 @@ class Contract:
 
         # TODO - toChecksumAddress should probably be an optional setting or option on the command-line
         account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
+        self._ezo.w3.eth.accounts[0] = account
 
         try:
+            u_state = self._ezo.w3.personal.unlockAccount(account, password)
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
             gas_estimate = ct.constructor().estimateGas()
             h = {'from': account, 'gas': gas_estimate + 1000}
@@ -245,6 +252,8 @@ class Contract:
 
         except Exception as e:
             return None, e
+        finally:
+            self._ezo.w3.personal.lockAccount(account)
 
         d = dict()
         d["contract-name"] = self.name
@@ -262,6 +271,7 @@ class Contract:
                 return None, err
         except Exception as e:
             return None, e
+
         return address, None
 
     async def listen(self, address):
@@ -304,12 +314,17 @@ class Contract:
 
 
         address = self._ezo.w3.toChecksumAddress(response_data["address"])
-        account = get_account(self._ezo.config, self._ezo.target)
-        self._ezo.w3.eth.defaultAccount = account
+        account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
+
+        self._ezo.w3.eth.accounts[0] = account
 
         tx_dict = dict()
         tx_dict["account"] = account
+        tx_dict["from"] = account
 
+        password = os.environ['EZO_PASSWORD'] if 'EZO_PASSWORD' in os.environ else None
+
+        u_state = self._ezo.w3.personal.unlockAccount(account, password)
 
         if not self.contract_obj:
             try:
@@ -326,11 +341,13 @@ class Contract:
                 tx_hash = contract_func().transact(tx_dict)
             else:
                 tx_dict["gas"] = contract_func(*params).estimateGas() + 1000
-                tx_hash = contract_func(*params).transact()
+                tx_hash = contract_func(*params).transact(tx_dict)
 
             receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
         except Exception as e:
             return None, "error executing transaction: {}".format(e)
+        finally:
+            self._ezo.w3.personal.lockAccount(account)
 
         return receipt, None
 
@@ -369,6 +386,7 @@ class Contract:
         errors = list()
 
         events = [x for x in self.abi if x["type"] == "event"]
+
         for event in events:
             #     get the topic sha3
             topic = Web3.sha3(text=get_topic_sha3(event))
@@ -476,7 +494,7 @@ class Contract:
         params = c.paramsForMethod(method, data)
 
         address = ezo.w3.toChecksumAddress(address)
-        ezo.w3.eth.defaultAccount = get_account(ezo.config, ezo.target)
+        ezo.w3.eth.defaultAccount = ezo.w3.toChecksumAddress(get_account(ezo.config, ezo.target))
 
         if not c.contract_obj:
             try:
@@ -678,14 +696,18 @@ class DB:
     '''
     data storage abstraction layer for LevelDB
 
-    note:  the db is opened and closed on demand.  this allows multiple applications to use the same
-    DB at the same time.  a pseudo lock-wait mechanism is implemented in open (this is a short-term solution).
+    the db is opened and closed on demand.  this allows multiple applications to use the same
+    DB at the same time.  a pseudo lock-wait mechanism is implemented in the open method).
+
+    a caching object is placed ahead of and behind get method reads and behind save method writes.  This keeps
+    oracle mode from having to hit leveldb very often at all.
 
     '''
 
     db = None
     project = None
     dbpath = None
+    cache = dict()
 
     def __init__(self, project, dbpath=None):
 
@@ -731,10 +753,12 @@ class DB:
         if err:
             return None, err
 
+        DB.cache[key] = value
         if serialize:
             value = pickle.dumps(value)
         try:
             DB.db.put(key, value)
+
         except Exception as e:
             return None, e
         self.close()
@@ -749,7 +773,8 @@ class DB:
         _, err = self.open()
         if err:
             return None, "DB.get error: {}".format(err)
-
+        if key in DB.cache:
+            return DB.cache[key]
         try:
             val = DB.db.get(key)
             if not val:
@@ -764,6 +789,7 @@ class DB:
             return None, e
         self.close()
 
+        DB.cache[key] = obj
         return obj, None
 
     def find(self, keypart):
