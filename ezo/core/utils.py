@@ -84,7 +84,7 @@ def create_blank_config_obj():
 		},
 		"contract-dir": "",
 		"handlers-dir": "",
-		"leveldb": "/tmp/ezodb",
+		"leveldb": "",
 		"poll-interval": 1,
 		"project-name": ""
 	}

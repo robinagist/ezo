@@ -155,11 +155,16 @@ class EZO:
         os.mkdir(handlers_dir)
         print(bright("created handlers directory: '{}".format(handlers_dir)))
 
+        # leveldb directory (created by level)
+        leveldb = "{}/{}".format(path, "ezodb")
+
+
         # create the initial config.json file
         cfg = create_blank_config_obj()
         cfg["ezo"]["contract-dir"] = contracts_dir
         cfg["ezo"]["handlers-dir"] = handlers_dir
         cfg["ezo"]["project-name"] = name
+        cfg["ezo"]["leveldb"] = leveldb
         print(bright("creating configuration: '{}".format(path)))
 
         # write the file to the root project dir
