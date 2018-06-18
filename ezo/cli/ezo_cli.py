@@ -12,6 +12,7 @@ from core.lib import Contract, EZO
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
 from core.utils import create_ethereum_account
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
+import os
 
 
 class EZOBaseController(CementBaseController):
@@ -23,9 +24,11 @@ class EZOBaseController(CementBaseController):
         description = 'ezo - easy Ethereum oracles'
         arguments = [
             (['-t', '--target'],
-             dict(action='store', help='deployment target node (set in configuration')),
+             dict(action='store', help='deployment target node set in configuration')),
             (['--overwrite'],
              dict(action='store_true', help="force overwriting of existing record (contract, deployment)")),
+            (['-p', '--password'],
+             dict(action='store', help='password to unlock local node account')),
             (['extra_args'],
              dict(action='store', nargs='*'))
         ]
@@ -67,7 +70,11 @@ class EZOBaseController(CementBaseController):
         log = self.app.log
         args = self.app.pargs
 
-        log.debug("deploying")
+        # inject password into the environment
+        if args.password:
+            os.environ["EZO_PASSWORD"] = args.password
+
+        log.debug("deploying...")
 
         if not args.target:
             log.error(red("target must be set with the -t option before deploying"))
@@ -117,6 +124,11 @@ class EZOBaseController(CementBaseController):
         log = self.app.log
         ezo = self.app.ezo
         args = self.app.pargs
+
+        # inject password into the environment
+        if args.password:
+            os.environ["EZO_PASSWORD"] = args.password
+
 
         log.debug("starting ezo")
         if not args.target:
@@ -246,7 +258,7 @@ class EZOCreateController(CementBaseController):
         label = "create"
         stacked_on = "base"
         stacked_type = "nested"
-        description = "create projects or accounts"
+        description = "create projects"
         arguments = [
             (['term'],
              dict(action='store', nargs='?'))
@@ -281,7 +293,9 @@ class EZOTestClientController(CementBaseController):
             (['c_args'],
              dict(action='store', nargs='*', help="contract arguments to send")),
             (['-t', '--target'],
-             dict(action='store', help='deployment target node (set in configuration'))
+             dict(action='store', help='deployment target node (set in configuration')),
+            (['-p', '--password'],
+             dict(action='store', help='password to unlock local node account'))
         ]
 
     @expose(help="run a transaction (state change) on the named Contract method")
@@ -290,6 +304,10 @@ class EZOTestClientController(CementBaseController):
         ezo = self.app.ezo
         args = self.app.pargs
         log = self.app.log
+
+        # inject password into the environment
+        if args.password:
+            os.environ["EZO_PASSWORD"] = args.password
 
         if not args.target:
             log.error("target must be set with the -t option before deploying")
