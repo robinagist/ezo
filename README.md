@@ -29,6 +29,8 @@ Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multip
 
 ### Install and Make A Project!!!
 
+[Build an Ethereum Oracle in 10 Minutes with Ezo and Python](https://medium.com/@robinagist/build-an-ethereum-oracle-in-10-minutes-using-ezo-and-python-80627c3909a7)
+
 To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it, and you won't have to mess with configuration right now.  Just use the `test` target (more on that later).
 
 #### ezo -- the first five minutes
