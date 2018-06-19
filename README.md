@@ -24,7 +24,7 @@ Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multip
 ##### ezo test client running against another instance of ezo in oracle mode
 
 
-#### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node keys, or Ganache keys.  
+#### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node accounts, or Ganache accounts.  
 
 ### Install and Make A Project!!!
 
