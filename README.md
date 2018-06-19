@@ -3,6 +3,8 @@
 ## Quickly Build Oracles and Event Responders on Ethereum using Python!
 ### (13 June 2018) - now in alpha!
 
+![image](https://user-images.githubusercontent.com/1685659/41576787-2a0667cc-733e-11e8-96dd-da56d99e3af3.png)
+
 `ezo` (pronounced `eh-zoh`) makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
 
 Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multiple deployment targets.  Start out testing with Ganache on your local machine, later move to the test net and then the mainnet, by simply specifying the target at deployment time.
