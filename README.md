@@ -3,12 +3,11 @@
 ## Quickly Build Oracles and Event Responders on Ethereum using Python!
 ### (13 June 2018) - now in alpha!
 
+![image](https://user-images.githubusercontent.com/1685659/41576787-2a0667cc-733e-11e8-96dd-da56d99e3af3.png)
+
 `ezo` (pronounced `eh-zoh`) makes Ethereum oracle development a snap.  Developed in Python, `ezo` permits compiling and deploying contracts, and generating handler scaffolding that allows the fast development of off-chain data sources which respond to contract events.
 
 Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multiple deployment targets.  Start out testing with Ganache on your local machine, later move to the test net and then the mainnet, by simply specifying the target at deployment time.
-
-#### thank you
-`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  It makes use of `solc`, the Solidity compiler, and soon the Vyper compiler.  To the folks that built those tools, and to the others who both necessitated the need for things such as `ezo`, and who also provided the pieces of the puzzle that made the project happen:  thank you.  `ezo` is dedicated to you, the open source community.  You move the world forward.
 
 ## v 0.1a Features 
 + build oracles from the command line.  removes the tedium from developing oracles and other off-chain contract event responders for Ethereum
@@ -25,9 +24,11 @@ Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multip
 ##### ezo test client running against another instance of ezo in oracle mode
 
 
-#### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node keys, or Ganache keys.  
+#### NOTE:  Account management and transaction signing in the next alpha release.  The Web3.py middleware layer for signing transactions transparently is still in testing.  In the meantime, use your account addresses with your local node accounts, or Ganache accounts.  
 
 ### Install and Make A Project!!!
+
+[Build an Ethereum Oracle in 10 Minutes with Ezo and Python](https://medium.com/@robinagist/build-an-ethereum-oracle-in-10-minutes-using-ezo-and-python-80627c3909a7)
 
 To get up fast, the ezo comes preconfigured for running on Ganache GUI.  Use it, and you won't have to mess with configuration right now.  Just use the `test` target (more on that later).
 
@@ -102,5 +103,8 @@ Now, you can customize the oracle with Python code in just the handler.  There i
 
 ---
 Check out the Wiki for more information
+
+#### thank you
+`ezo` is built using `Python 3.6`, the `Cement CLI Framework` and `Web3.py`, for use on any `Ethereum` blockchain network. Contract and deployment state is maintained in `LevelDB`.  It makes use of `solc`, the Solidity compiler, and soon the Vyper compiler.  To the folks that built those tools, and to the others who both necessitated the need for things such as `ezo`, and who also provided the pieces of the puzzle that made the project happen:  thank you.  `ezo` is dedicated to you, the open source community.  You move the world forward.
 
 
