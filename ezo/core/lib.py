@@ -248,6 +248,7 @@ class Contract:
 
         try:
             u_state = self._ezo.w3.personal.unlockAccount(account, password)
+
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
             gas_estimate = ct.constructor().estimateGas()
             h = {'from': account, 'gas': gas_estimate + 1000}
@@ -257,8 +258,8 @@ class Contract:
 
         except Exception as e:
             return None, e
-        finally:
-            self._ezo.w3.personal.lockAccount(account)
+#        finally:
+#            self._ezo.w3.personal.lockAccount(account)
 
         d = dict()
         d["contract-name"] = self.name
@@ -317,7 +318,6 @@ class Contract:
             return None, "params missing from response_data payload"
 
 
-
         address = self._ezo.w3.toChecksumAddress(response_data["address"])
         account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
 
@@ -351,8 +351,8 @@ class Contract:
             receipt = self._ezo.w3.eth.waitForTransactionReceipt(tx_hash)
         except Exception as e:
             return None, "error executing transaction: {}".format(e)
-        finally:
-            self._ezo.w3.personal.lockAccount(account)
+  #      finally:
+#            self._ezo.w3.personal.lockAccount(account)
 
         return receipt, None
 
@@ -758,15 +758,14 @@ class DB:
         if err:
             return None, err
 
-        DB.cache[key] = value
-        if serialize:
-            value = pickle.dumps(value)
+        v = pickle.dumps(value) if serialize else value
         try:
-            DB.db.put(key, value)
+            DB.db.put(key, v)
 
         except Exception as e:
             return None, e
         self.close()
+        DB.cache[key] = value
 
         return key, None
 

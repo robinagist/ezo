@@ -45,12 +45,12 @@ class EZOBaseController(CementBaseController):
             contracts_source, err = Contract.load(filename)
             if err:
                 log.error(red("error loading contracts file: {}".format(err)))
-                exit(1)
+                return err
 
             contracts, err = Contract.compile(contracts_source, ezo)
             if err:
                 log.error(red("error compiling contracts source: {}".format(err)))
-                exit(1)
+                return err
 
             # persist the compiled contract
             for contract in contracts:
@@ -58,10 +58,10 @@ class EZOBaseController(CementBaseController):
                 iid, err = contract.save(overwrite=self.app.pargs.overwrite)
                 if err:
                     log.error(red("error while persisting Contract to datastore: {}".format(err)))
-                    exit(2)
+                    return err
                 else:
                     log.info(cyan("contract saved: {}".format(iid)))
-            exit(0)
+            return
 
     @expose(help="deploy smart contracts")
     def deploy(self):
@@ -78,7 +78,7 @@ class EZOBaseController(CementBaseController):
 
         if not args.target:
             log.error(red("target must be set with the -t option before deploying"))
-            exit(1)
+            return
 
         ezo.target = args.target
 
@@ -86,7 +86,7 @@ class EZOBaseController(CementBaseController):
         if err:
             log.error(red("unable to dial node"))
             log.error(red("error: {}".format(err)))
-            exit(2)
+            return
 
         for h in args.extra_args:
             log.info(cyan("deploying contract {} to {}".format(h, ezo.target)))
@@ -95,22 +95,22 @@ class EZOBaseController(CementBaseController):
             c, err = Contract.get(h, ezo)
             if err:
                 log.error(red("error loading contract from storage: {}".format(err)))
-                exit(2)
+                return
             if not c:
                 log.error(red("contract '{}' not found -- has it been compiled?").format((h)))
-                exit(1)
+                return
 
             # deploy the contract
             addr, err = c.deploy(overwrite=self.app.pargs.overwrite)
             if err:
                 log.error(red("error deploying contract {} to {}".format(c.hash, ezo.target)))
                 log.error(red("message: {}".format(err)))
-                exit(2)
+                return
 
 
             log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr)))
 
-        exit(0)
+        return
 
 
     @expose(help="delete contracts or deployments")
@@ -133,16 +133,16 @@ class EZOBaseController(CementBaseController):
         log.debug("starting ezo")
         if not args.target:
             log.error("target must be set with the -t option before deploying")
-            exit(2)
+            return
         ezo.target = args.target
         _, err = ezo.dial()
         if err:
             log.error(red("error with node: {}".format(err)))
-            exit(1)
+            return err
 
         if not args.extra_args:
             log.error(red("error: missing contract name"))
-            exit(1)
+            return
 
         res, err = ezo.start(args.extra_args)
         if err:
@@ -192,7 +192,7 @@ class EZOGeneratorController(CementBaseController):
                 log.error(red("error generating handlers for {}: {}".format(h, err)))
                 continue
             log.info(cyan("handlers for contract {} generated".format(h)))
-        exit(0)
+        return
 
 
 class EZOViewController(CementBaseController):
@@ -218,7 +218,7 @@ class EZOViewController(CementBaseController):
         if err:
             log.error(red("error viewing contracts"))
             log.error(red(err))
-            exit(1)
+            return err
 
         v = view_contracts(res)
         print()
@@ -228,7 +228,7 @@ class EZOViewController(CementBaseController):
         print(blue("+------------+"))
         print(yellow("ezo contracts: {}".format(len(res))))
         print(reset(""))
-        exit(0)
+        return
 
     @expose(help="view deploys")
     def deploys(self):
@@ -238,7 +238,7 @@ class EZOViewController(CementBaseController):
         if err:
             log.error(red("error viewing deployments"))
             log.error(red(err))
-            exit(1)
+            return err
         v = view_deploys(res)
         print()
         print(bright(blue("+-------+")))
@@ -247,7 +247,7 @@ class EZOViewController(CementBaseController):
         print(blue("+--------------+"))
         print(yellow("ezo deployments: {}".format(bright(len(res)))))
         print(reset(""))
-        exit(0)
+        return len(res)
 
 
 class EZOCreateController(CementBaseController):
@@ -274,10 +274,10 @@ class EZOCreateController(CementBaseController):
         res, err = EZO.create_project(self.app.pargs.term)
         if err:
             print(err)
-            exit(1)
+            return err
         print(bright(blue("new ezo project '{}' created".format(self.app.pargs.term))))
         print(reset(""))
-        exit(0)
+        return
 
 
 class EZOTestClientController(CementBaseController):
@@ -311,17 +311,17 @@ class EZOTestClientController(CementBaseController):
 
         if not args.target:
             log.error("target must be set with the -t option before deploying")
-            exit(2)
+            return
         ezo.target = args.target
 
         _, err = ezo.dial()
         if err:
             log.error(red("error with node: {}".format(err)))
-            exit(1)
+            return err
 
         if len(params) != 3:
             self.app.log.error(red("missing parameters for send tx - 3 required"))
-            exit(1)
+            return
 
 
         name = params[0]
@@ -331,7 +331,7 @@ class EZOTestClientController(CementBaseController):
         resp, err = Contract.send(ezo, name, method, data)
         if err:
             self.app.log.error(red("tx error: {}".format(err)))
-            exit(1)
+            return err
 
         self.app.log.info(bright(blue("==============")))
         for k, v in resp.items():
@@ -381,7 +381,7 @@ class EZOApp(CementApp):
     class Meta:
         label = "ezo"
         base_controller = "base"
-        extensions = ['json_configobj']
+        extensions = ['json_configobj', 'mustache', 'json']
         config_handler = 'json_configobj'
         config_files = ['ezo.conf']
         handlers = [
