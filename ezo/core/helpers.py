@@ -26,11 +26,13 @@ def get_contract_path(config, filename=None):
         return "{}/{}".format(config["contract-dir"], filename)
     return config["contract-dir"]
 
+
 # returns a full path to the handler directory
 def get_handler_path(config, contract_name=None):
     if contract_name:
         return "{}/{}".format(config["handlers-dir"], contract_name)
     return config["handlers-dir"]
+
 
 def get_templates_path(config, template_name=None):
     if template_name:

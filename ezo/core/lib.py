@@ -56,9 +56,10 @@ class EZO:
                 self.w3 = Web3(HTTPProvider(url))
             elif url.endswith('ipc'):
                 if url == 'ipc':
-                    print('ipc')
                     url = None
                 self.w3 = Web3(Web3.IPCProvider(url))
+            else:
+                return None, "Invalid Provider URL: {}".format(url)
 
         except Exception as e:
             return None, e
@@ -717,7 +718,7 @@ class DB:
 
     def __init__(self, project, dbpath=None):
 
-        DB.dbpath = dbpath if dbpath else '/tmp/ezodb/'
+        DB.dbpath = dbpath if dbpath else '~/ezodb/'
         DB.project = project if project else 'ezo_project_default'
 
     def open(self):
