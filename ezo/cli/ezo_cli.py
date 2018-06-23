@@ -10,7 +10,7 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract, EZO
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
-from core.utils import create_ethereum_account
+from core.utils import create_ethereum_account, Source
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 import os
 
@@ -177,6 +177,9 @@ class EZOGeneratorController(CementBaseController):
         ezo = self.app.ezo
         args = self.app.pargs
 
+        # set the Source template directory from config
+        Source.templates_dir = ezo.config["templates-dir"]
+
         # go through each contract hash and create handlers
         for h in args.extra_args:
             log.info(cyan("generating any missing event handlers for contract: {}".format(h)))
@@ -240,9 +243,6 @@ class EZOViewController(CementBaseController):
             log.error(red(err))
             return err
         v = view_deploys(res)
-#        for r in res:
-#            for k, v in r.items():
-#                self.app.render(v, 'deploys.m' )
         print()
         print(bright(blue("+-------+")))
         for vs in v:
@@ -274,6 +274,9 @@ class EZOCreateController(CementBaseController):
 
     @expose(help="the first step in every ezo project")
     def project(self):
+        ezo = self.app.ezo
+        # set the Source template directory from config
+        Source.templates_dir = ezo.config["templates-dir"]
         res, err = EZO.create_project(self.app.pargs.term)
         if err:
             print(err)

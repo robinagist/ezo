@@ -32,6 +32,11 @@ def get_handler_path(config, contract_name=None):
         return "{}/{}".format(config["handlers-dir"], contract_name)
     return config["handlers-dir"]
 
+def get_templates_path(config, template_name=None):
+    if template_name:
+        return "{}/{}".format(config["templates-dir"], template_name)
+    return config["templates-dir"]
+
 
 # returns an xxhash of the passed string
 def get_hash(str):

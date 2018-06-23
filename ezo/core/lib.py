@@ -406,9 +406,12 @@ class Contract:
             if not os.path.exists(eh) or overwrite:
 
                 # create event handler scaffold in python
+                code, err = gen_event_handler_code(event_name)
+                if err:
+                    print(red("gen error: {}".format(err)))
                 try:
                     with open(eh, "w+") as f:
-                        f.write(gen_event_handler_code(event_name))
+                        f.write(code)
 
                 except Exception as e:
                     print(red("gen error: {}".format(e)))
