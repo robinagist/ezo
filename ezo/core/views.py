@@ -1,5 +1,5 @@
 
-from core.lib import Contract, EZO, DB
+from core.lib import EZO, DB
 from core.helpers import cyan, red, yellow, bright, blue, magenta
 from datetime import datetime
 

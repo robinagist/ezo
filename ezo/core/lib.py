@@ -30,15 +30,13 @@ class EZO:
     COMPILED = "COMPILED"
     DEPLOYED = "DEPLOYED"
 
-    def __init__(self, config, w3=False):
+    def __init__(self, config):
         if not config:
             return
         self.config = config
         self.target = None
         self.w3 = None
         EZO.db = DB(config["project-name"], config["leveldb"] )
-        if w3:
-            self.dial()
 
     def dial(self, url=None):
         '''
@@ -161,6 +159,7 @@ class EZO:
 
         # create the initial config.json file
         cfg = create_blank_config_obj()
+
         cfg["ezo"]["contract-dir"] = contracts_dir
         cfg["ezo"]["handlers-dir"] = handlers_dir
         cfg["ezo"]["project-name"] = name
@@ -242,7 +241,6 @@ class Contract:
             if res:
                 return None, "deployment on {} already exists for contract {} use '--overwrite' to force".format(self._ezo.target, self.hash)
 
-        # TODO - toChecksumAddress should probably be an optional setting or option on the command-line
         account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
         self._ezo.w3.eth.accounts[0] = account
 
@@ -778,7 +776,7 @@ class DB:
         if err:
             return None, "DB.get error: {}".format(err)
         if key in DB.cache:
-            return DB.cache[key]
+            return DB.cache[key], None
         try:
             val = DB.db.get(key)
             if not val:
