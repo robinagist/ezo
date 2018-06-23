@@ -7,11 +7,20 @@ import pystache
 
 
 class Source():
+    '''
+    Source is a simple source code templating engine.  It uses simple Python
+    string formatting methods.
+
+    Set the template directory before using.
+
+    the generate method takes a template file and option data dictionary.
+    format will insert the elements in data that match the elements in the template
+    '''
 
     templates_dir = None
 
     @classmethod
-    def generate_source(cls, template_name, data=None):
+    def generate(cls, template_name, data=None):
 
         if not cls.templates_dir:
             return None, "Source.templates_dir must be set before generating source"
@@ -30,7 +39,16 @@ class Source():
                 return None, e
         return ks, None
 
+    @classmethod
+    def save(cls, file_str, file_path):
 
+        try:
+            with open(file_path, "w+") as file:
+                file.write(file_str)
+        except Exception as e:
+            return None, e
+
+        return None, None
 
 
 def create_ethereum_account():
@@ -54,7 +72,7 @@ def gen_event_handler_code(event_name):
 
     d = dict()
     d["event_name"] = event_name
-    ks, err = Source.generate_source("event_handler.m", d)
+    ks, err = Source.generate("event_handler.m", d)
     if err:
         return None, err
     return ks, None
@@ -62,7 +80,7 @@ def gen_event_handler_code(event_name):
 
 def create_blank_config_obj():
 
-    ks, err = Source.generate_source("ezoconf.m")
+    ks, err = Source.generate("ezoconf.m")
     if err:
         return None, err
     return ks, None
@@ -73,7 +91,7 @@ def create_sample_contracts_1():
 
     # WeatherOracle
 
-    ks, err = Source.generate_source("sample_contract_01.m")
+    ks, err = Source.generate("sample_contract_01.m")
     if err:
         return None, err
     return ks, None
@@ -84,7 +102,7 @@ def create_sample_contracts_2():
 
     #TimestampOracle
 
-    ks, err = Source.generate_source("sample_contract_02.m")
+    ks, err = Source.generate("sample_contract_02.m")
     if err:
         return None, err
     return ks, None
