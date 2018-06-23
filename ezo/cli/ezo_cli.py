@@ -41,7 +41,7 @@ class EZOBaseController(CementBaseController):
         for filename in self.app.pargs.extra_args:
             log.info(cyan("compiling contracts in {}".format(filename)))
 
-            filename = get_contract_path(self.app.config, filename)
+            filename = get_contract_path(self.app.config["ezo"], filename)
             contracts_source, err = Contract.load(filename)
             if err:
                 log.error(red("error loading contracts file: {}".format(err)))
@@ -61,6 +61,7 @@ class EZOBaseController(CementBaseController):
                     return err
                 else:
                     log.info(cyan("contract saved: {}".format(iid)))
+                    print("pytest>>CONTRACT_SAVED")
             return
 
     @expose(help="deploy smart contracts")
@@ -106,8 +107,7 @@ class EZOBaseController(CementBaseController):
                 log.error(red("error deploying contract {} to {}".format(c.hash, ezo.target)))
                 log.error(red("message: {}".format(err)))
                 return
-
-
+            print("pytest>>DEPLOYED CONTRACT")
             log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr)))
 
         return
@@ -240,6 +240,9 @@ class EZOViewController(CementBaseController):
             log.error(red(err))
             return err
         v = view_deploys(res)
+#        for r in res:
+#            for k, v in r.items():
+#                self.app.render(v, 'deploys.m' )
         print()
         print(bright(blue("+-------+")))
         for vs in v:
@@ -349,17 +352,17 @@ class EZOTestClientController(CementBaseController):
 
         if not args.target:
             log.error("target must be set with the -t option before deploying")
-            exit(2)
+            return
         ezo.target = args.target
 
         _, err = ezo.dial()
         if err:
             log.error(red("error with node: {}".format(err)))
-            exit(1)
+            return
 
         if len(params) != 3:
             self.app.log.error(red("missing parameters for send tx - 3 required"))
-            exit(1)
+            return
 
         name = params[0]
         method = params[1]
@@ -369,10 +372,10 @@ class EZOTestClientController(CementBaseController):
 
         if err:
             self.app.log.error(red("call error: {}".format(err)))
-            exit(1)
+            return
 
         self.app.log.info(blue("call response: {}".format(yellow(resp))))
-        exit(0)
+        return
 
 
 
@@ -381,9 +384,11 @@ class EZOApp(CementApp):
     class Meta:
         label = "ezo"
         base_controller = "base"
-        extensions = ['json_configobj', 'mustache', 'json']
+        extensions = ['json_configobj', 'mustache']
         config_handler = 'json_configobj'
         config_files = ['ezo.conf']
+        template_module = 'ezo.templates'
+
         handlers = [
                     EZOBaseController,
                     EZOGeneratorController,
@@ -391,3 +396,4 @@ class EZOApp(CementApp):
                     EZOCreateController,
                     EZOTestClientController
                     ]
+        output_handler = 'mustache'

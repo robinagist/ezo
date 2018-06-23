@@ -1,7 +1,5 @@
 import json, xxhash
 from hexbytes import HexBytes
-from datetime import datetime
-
 
 
 class HexJsonEncoder(json.JSONEncoder):
@@ -22,22 +20,17 @@ def get_account(config, target):
     return cfg["account"]
 
 
-# returns the database file location
-def get_db_url(config):
-    return config["database"]["url"]
-
-
 # returns the base directory for contacts
 def get_contract_path(config, filename=None):
     if filename:
-        return "{}/{}".format(config["ezo"]["contract-dir"], filename)
-    return config["ezo"]["contract-dir"]
+        return "{}/{}".format(config["contract-dir"], filename)
+    return config["contract-dir"]
 
 # returns a full path to the handler directory
 def get_handler_path(config, contract_name=None):
     if contract_name:
         return "{}/{}".format(config["handlers-dir"], contract_name)
-    return config["ezo"]["handlers-dir"]
+    return config["handlers-dir"]
 
 
 # returns an xxhash of the passed string

@@ -8,6 +8,7 @@ from core.helpers import reset
 def main():
     with EZOApp() as app:
         app.ezo = EZO(app.config["ezo"])
+        app.add_template_dir(app.ezo.config["templates-dir"])
         EZO.log = app.log
         try:
             app.run()

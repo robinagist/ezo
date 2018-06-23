@@ -2,6 +2,7 @@ import json
 from eth_account import Account
 from xkcdpass import xkcd_password as xp
 from core.helpers import red, cyan, yellow, magenta, blue
+from cement.core import foundation
 
 
 
@@ -24,6 +25,7 @@ def create_ethereum_account():
 
 def gen_event_handler_code(event_name):
 
+
     template = '''
 
 from core.views import event_output
@@ -33,12 +35,7 @@ from core.views import event_output
 # data is an instance of ContractEvent
 # contract is the calling instance of Contract - it is used to send a response
 
-
-'''
-
-    template += "event_name = '{}'".format(event_name)
-    template += '''
-
+event_name = '{}'
 
 def handler(data, contract):
 
@@ -61,8 +58,7 @@ def handler(data, contract):
    
     return None, None
     '''
-
-    return template
+    return template.format(event_name)
 
 
 def create_blank_config_obj():
