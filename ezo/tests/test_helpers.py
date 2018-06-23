@@ -23,7 +23,7 @@ def test_02_get_account():
 
 @pytest.mark.skip
 def test_03_get_contract_path():
-    k = helpers.get_contract_path(config(), "testfile")
+    k = helpers.get_contract_patha(config())
     assert "testfile" in k
 
 def test_04_get_handler_path():
