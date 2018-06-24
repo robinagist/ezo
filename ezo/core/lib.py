@@ -7,7 +7,7 @@ library for ezo
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
-from core.utils import gen_event_handler_code, create_blank_config_obj, \
+from core.generators import gen_event_handler_code, create_blank_config_obj, \
     create_sample_contracts_1, create_sample_contracts_2
 from core.helpers import cyan, red, yellow, blue, bright, magenta, reset, HexJsonEncoder
 from datetime import datetime
@@ -430,14 +430,7 @@ class Contract:
 
     def paramsForMethod(self, method, data):
         '''
-        marshals contract method parameters (in a list) to the format the contract is expecting.  this method
-        is used by the SEND and CALL commands, so that method parameters can be typed in easily from the
-        command line.  it uses the contract ABI for reference
 
-        :param data: STRING - an ordered list of method parameters enclosed in quotes (e.g. "['bob',27]")
-        matching the signature of the contract method
-
-        :return: a list of properly formatted data elements
         '''
 
         v = ast.literal_eval(data)

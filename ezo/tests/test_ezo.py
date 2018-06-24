@@ -51,7 +51,7 @@ def test_d_ezo_compile_contract():
         app.run()
         output = sys.stdout.getvalue()
         sys.stdout = old_stdout
-        app.close()
+
         assert 'CONTRACT' in output
 
 
@@ -65,20 +65,10 @@ def test_e_ezo_deploy_contract():
         result = StringIO()
         sys.stdout = result
         app.run()
-        app.close()
+
         output = sys.stdout.getvalue()
         sys.stdout = old_stdout
 
         assert 'CONTRACT' in output
 
-
-    with EZOTestApp(argv=['deploy', 'TimestampRequestOracle', '-t', 'test'], config_files=['testezo.conf']) as app:
-        old_stdout = sys.stdout
-        app.ezo = EZO(app.config["ezo"])
-        result = StringIO()
-        sys.stdout = result
-        app.run()
-        output = sys.stdout.getvalue()
-        sys.stdout = old_stdout
-        assert 'CONTRACT' in output
 

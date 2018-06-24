@@ -86,7 +86,6 @@ def create_blank_config_obj():
     return ks, None
 
 
-
 def create_sample_contracts_1():
 
     # WeatherOracle
@@ -95,7 +94,6 @@ def create_sample_contracts_1():
     if err:
         return None, err
     return ks, None
-
 
 
 def create_sample_contracts_2():
