@@ -1,6 +1,6 @@
 
 import pytest, json
-from core.utils import gen_event_handler_code, \
+from core.generators import gen_event_handler_code, \
     create_sample_contracts_1, \
     create_sample_contracts_2, \
     create_blank_config_obj, Source

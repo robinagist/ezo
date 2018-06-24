@@ -10,7 +10,7 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract, EZO
 from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
-from core.utils import create_ethereum_account, Source
+from core.generators import create_ethereum_account, Source
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 import os
 

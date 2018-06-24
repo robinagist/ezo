@@ -7,7 +7,7 @@ library for ezo
 from solc import compile_source
 from web3 import Web3, WebsocketProvider, HTTPProvider
 from core.helpers import get_url, get_hash, get_account, get_handler_path, get_topic_sha3
-from core.utils import gen_event_handler_code, create_blank_config_obj, \
+from core.generators import gen_event_handler_code, create_blank_config_obj, \
     create_sample_contracts_1, create_sample_contracts_2
 from core.helpers import cyan, red, yellow, blue, bright, magenta, reset, HexJsonEncoder
 from datetime import datetime
@@ -366,10 +366,8 @@ class Contract:
         c["timestamp"] = self.timestamp
         c["te-map"] = self.te_map
 
-
         # save to compiled contract
         name = self.name.replace('<stdin>:',"")
-
         key = DB.pkey([EZO.COMPILED, name, c["hash"]])
         ks, err =  self._ezo.db.save(key, c, overwrite=overwrite)
         if err:
@@ -430,14 +428,7 @@ class Contract:
 
     def paramsForMethod(self, method, data):
         '''
-        marshals contract method parameters (in a list) to the format the contract is expecting.  this method
-        is used by the SEND and CALL commands, so that method parameters can be typed in easily from the
-        command line.  it uses the contract ABI for reference
 
-        :param data: STRING - an ordered list of method parameters enclosed in quotes (e.g. "['bob',27]")
-        matching the signature of the contract method
-
-        :return: a list of properly formatted data elements
         '''
 
         v = ast.literal_eval(data)
@@ -733,6 +724,7 @@ class DB:
 
         while(True):
             try:
+                print('ha')
                 DB.db = plyvel.DB(DB.dbpath, create_if_missing=True).prefixed_db(bytes(DB.project, 'utf-8'))
                 if DB.db:
                     break
@@ -747,7 +739,7 @@ class DB:
     def save(self, key, value, overwrite=False, serialize=True):
 
         if isinstance(key, str):
-            key = bytes(key, 'utf=8')
+            key = bytes(key, 'utf-8')
 
         if not overwrite:
             a, err = self.get(key)
@@ -766,9 +758,10 @@ class DB:
 
         except Exception as e:
             return None, e
-        self.close()
-        DB.cache[key] = value
+        finally:
+            self.close()
 
+        DB.cache[key] = value
         return key, None
 
     def delete(self, key):
@@ -776,16 +769,21 @@ class DB:
 
     def get(self, key, deserialize=True):
 
+        if isinstance(key, str):
+            key = bytes(key, 'utf-8')
+
+        if key in DB.cache:
+            return DB.cache[key], None
+
         _, err = self.open()
         if err:
             return None, "DB.get error: {}".format(err)
-        if key in DB.cache:
-            return DB.cache[key], None
+
+        val = DB.db.get(key)
+        if not val:
+            self.close()
+            return None, None
         try:
-            val = DB.db.get(key)
-            if not val:
-                self.close()
-                return None, None
             if deserialize:
                 obj = pickle.loads(val)
             else:
@@ -793,7 +791,8 @@ class DB:
 
         except Exception as e:
             return None, e
-        self.close()
+        finally:
+            self.close()
 
         DB.cache[key] = obj
         return obj, None
@@ -805,24 +804,26 @@ class DB:
             return None, err
 
         if isinstance(keypart, str):
-            keypart = bytes(keypart)
+            keypart = bytes(keypart, 'utf-8')
+
         elif not isinstance(keypart, bytes):
-            return None, "keypart must be a byte string"
+            return None, "keypart must be a string or byte string"
 
         res = list()
         try:
             it = DB.db.iterator(prefix=keypart)
+
             for key, value in it:
                res.append({key.decode('utf-8'): pickle.loads(value)})
         except Exception as e:
             return None, e
-
-        self.close()
+        finally:
+            self.close()
 
         return res, None
 
     def close(self):
-        DB.db.db.close()
+#        DB.db.db.close()
         DB.db = None
 
     @staticmethod
