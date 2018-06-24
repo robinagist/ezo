@@ -40,7 +40,7 @@ def test_c_ezo_view_contracts():
         sys.stdout = old_stdout
         assert 'contract' in output
 
-@pytest.mark.skip
+# @pytest.mark.skip
 def test_d_ezo_compile_contract():
     import sys
     with EZOTestApp(argv=['compile', 'time_oracle.sol', '--overwrite'], config_files=['testezo.conf']) as app:
@@ -55,7 +55,7 @@ def test_d_ezo_compile_contract():
         assert 'CONTRACT' in output
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_e_ezo_deploy_contract():
     import sys
 

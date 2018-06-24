@@ -726,6 +726,7 @@ class DB:
 
         while(True):
             try:
+                print('ha')
                 DB.db = plyvel.DB(DB.dbpath, create_if_missing=True).prefixed_db(bytes(DB.project, 'utf-8'))
                 if DB.db:
                     break
@@ -740,7 +741,7 @@ class DB:
     def save(self, key, value, overwrite=False, serialize=True):
 
         if isinstance(key, str):
-            key = bytes(key, 'utf=8')
+            key = bytes(key, 'utf-8')
 
         if not overwrite:
             a, err = self.get(key)
@@ -759,9 +760,10 @@ class DB:
 
         except Exception as e:
             return None, e
-        self.close()
-        DB.cache[key] = value
+        finally:
+            self.close()
 
+        DB.cache[key] = value
         return key, None
 
     def delete(self, key):
@@ -769,16 +771,21 @@ class DB:
 
     def get(self, key, deserialize=True):
 
+        if isinstance(key, str):
+            key = bytes(key, 'utf-8')
+
+        if key in DB.cache:
+            return DB.cache[key], None
+
         _, err = self.open()
         if err:
             return None, "DB.get error: {}".format(err)
-        if key in DB.cache:
-            return DB.cache[key], None
+
+        val = DB.db.get(key)
+        if not val:
+            self.close()
+            return None, None
         try:
-            val = DB.db.get(key)
-            if not val:
-                self.close()
-                return None, None
             if deserialize:
                 obj = pickle.loads(val)
             else:
@@ -786,7 +793,8 @@ class DB:
 
         except Exception as e:
             return None, e
-        self.close()
+        finally:
+            self.close()
 
         DB.cache[key] = obj
         return obj, None
@@ -798,24 +806,26 @@ class DB:
             return None, err
 
         if isinstance(keypart, str):
-            keypart = bytes(keypart)
+            keypart = bytes(keypart, 'utf-8')
+
         elif not isinstance(keypart, bytes):
             return None, "keypart must be a byte string"
 
         res = list()
         try:
             it = DB.db.iterator(prefix=keypart)
+
             for key, value in it:
                res.append({key.decode('utf-8'): pickle.loads(value)})
         except Exception as e:
             return None, e
-
-        self.close()
+        finally:
+            self.close()
 
         return res, None
 
     def close(self):
-        DB.db.db.close()
+#        DB.db.db.close()
         DB.db = None
 
     @staticmethod
