@@ -366,10 +366,8 @@ class Contract:
         c["timestamp"] = self.timestamp
         c["te-map"] = self.te_map
 
-
         # save to compiled contract
         name = self.name.replace('<stdin>:',"")
-
         key = DB.pkey([EZO.COMPILED, name, c["hash"]])
         ks, err =  self._ezo.db.save(key, c, overwrite=overwrite)
         if err:
@@ -809,7 +807,7 @@ class DB:
             keypart = bytes(keypart, 'utf-8')
 
         elif not isinstance(keypart, bytes):
-            return None, "keypart must be a byte string"
+            return None, "keypart must be a string or byte string"
 
         res = list()
         try:
