@@ -1,6 +1,6 @@
 from core.lib import DB
 import pytest
-import time, shutil
+import shutil
 
 
 class TestDB:
@@ -11,7 +11,7 @@ class TestDB:
 
     @classmethod
     def setup(cls):
-        cls.dbpath = "/tmp/ezotest" #{}/".format(int(time.time()))
+        cls.dbpath = "/tmp/ezotest"
         cls.project = "pytest"
         cls.db = DB(cls.project, cls.dbpath)
 
