@@ -229,6 +229,10 @@ class Contract:
         :return: address, err
         '''
 
+       # TODO - REFACTOR so that target is passed in, rather than obtained from the EZO instance
+       # TODO (contd) - only makes sense that a contract should know how to deploy itself to a target, but
+        # TODO (contd) - doesn't make sense this way
+
         name = self.name.replace('<stdin>:', "")
         key = DB.pkey([EZO.DEPLOYED, name, self._ezo.target, self.hash])
 
@@ -832,7 +836,7 @@ class DB:
         for e in elems:
             key += e
             key += ":"
-        return bytes(key, 'utf=8')
+        return bytes(key, 'utf-8')
 
 
 

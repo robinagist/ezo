@@ -9,7 +9,7 @@ use at your own risk
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from core.lib import Contract, EZO
-from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset
+from core.helpers import get_contract_path, red, green, cyan, yellow, blue, bright, reset, magenta
 from core.generators import create_ethereum_account, Source
 from core.views import get_contracts, view_contracts, get_deploys, view_deploys
 import os
@@ -32,6 +32,10 @@ class EZOBaseController(CementBaseController):
             (['extra_args'],
              dict(action='store', nargs='*'))
         ]
+
+    @expose(help="")
+    def default(self):
+        print(magenta("Ezo needs more words to work.  Try 'ezo --help'"))
 
     @expose(help="compile smart contracts")
     def compile(self):
@@ -169,7 +173,7 @@ class EZOGeneratorController(CementBaseController):
 
     @expose(help="gen", hide=True)
     def default(self):
-        self.app.log.error(red("command must be followed by  'handlers"))
+        print(magenta("Ezo needs more words to work.  Try 'ezo --help'"))
 
     @expose(help="generate event handlers")
     def handlers(self):
@@ -211,6 +215,11 @@ class EZOViewController(CementBaseController):
             (['term'],
              dict(action='store', nargs="?"))
         ]
+
+    @expose(help="default")
+    def default(self):
+        print(magenta("Ezo needs more words to work.  Try 'ezo --help'"))
+
 
     @expose(help="view contracts")
     def contracts(self):
@@ -267,10 +276,10 @@ class EZOCreateController(CementBaseController):
              dict(action='store', nargs='?'))
         ]
 
-    @expose(help="generate a new local Ethereum account")
-    def account(self):
-        create_ethereum_account()
-
+    @expose(help="")
+    def default(self):
+        print(magenta("Ezo needs more words to work.  Try 'ezo --help'"))
+        return
 
     @expose(help="the first step in every ezo project")
     def project(self):
@@ -303,6 +312,10 @@ class EZOTestClientController(CementBaseController):
             (['-p', '--password'],
              dict(action='store', help='password to unlock local node account'))
         ]
+
+    @expose(help="")
+    def default(self):
+        print(magenta("Ezo needs more words to work.  Try 'ezo --help'"))
 
     @expose(help="run a transaction (state change) on the named Contract method")
     def tx(self):
