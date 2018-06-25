@@ -85,16 +85,14 @@ class EZOBaseController(CementBaseController):
             log.error(red("target must be set with the -t option before deploying"))
             return
 
-        ezo.target = args.target
-
-        _, err = ezo.dial()
+        _, err = ezo.dial(args.target)
         if err:
             log.error(red("unable to dial node"))
             log.error(red("error: {}".format(err)))
             return
 
         for h in args.extra_args:
-            log.info(cyan("deploying contract {} to {}".format(h, ezo.target)))
+            log.info(cyan("deploying contract {} to {}".format(h, args.target)))
 
             # get the compiled contract by it's Contract Name
             c, err = Contract.get(h, ezo)
@@ -106,13 +104,13 @@ class EZOBaseController(CementBaseController):
                 return
 
             # deploy the contract
-            addr, err = c.deploy(overwrite=self.app.pargs.overwrite)
+            addr, err = c.deploy(target=args.target, overwrite=self.app.pargs.overwrite)
             if err:
-                log.error(red("error deploying contract {} to {}".format(c.hash, ezo.target)))
+                log.error(red("error deploying contract {} to {}".format(c.hash, args.target)))
                 log.error(red("message: {}".format(err)))
                 return
             print("pytest>>DEPLOYED CONTRACT")
-            log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, ezo.target, addr)))
+            log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, args.target, addr)))
 
         return
 
@@ -139,7 +137,7 @@ class EZOBaseController(CementBaseController):
             log.error("target must be set with the -t option before deploying")
             return
         ezo.target = args.target
-        _, err = ezo.dial()
+        _, err = ezo.dial(args.target)
         if err:
             log.error(red("error with node: {}".format(err)))
             return err
@@ -331,17 +329,16 @@ class EZOTestClientController(CementBaseController):
         if not args.target:
             log.error("target must be set with the -t option before deploying")
             return
-        ezo.target = args.target
 
-        _, err = ezo.dial()
-        if err:
-            log.error(red("error with node: {}".format(err)))
-            return err
+        ezo.target = args.target
 
         if len(params) != 3:
             self.app.log.error(red("missing parameters for send tx - 3 required"))
             return
-
+        _, err = ezo.dial(args.target)
+        if err:
+            log.error(red("error with node: {}".format(err)))
+            return err
 
         name = params[0]
         method = params[1]
@@ -371,7 +368,7 @@ class EZOTestClientController(CementBaseController):
             return
         ezo.target = args.target
 
-        _, err = ezo.dial()
+        _, err = ezo.dial(args.target)
         if err:
             log.error(red("error with node: {}".format(err)))
             return

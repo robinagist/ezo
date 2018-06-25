@@ -38,7 +38,7 @@ class EZO:
         self.w3 = None
         EZO.db = DB(config["project-name"], config["leveldb"] )
 
-    def dial(self, url=None):
+    def dial(self, target=None):
         '''
         connects to a node
 
@@ -46,8 +46,11 @@ class EZO:
         if not provided, will use default for the stage
         :returns: provider, error
         '''
-        if not url:
-            url = get_url(self.config, self.target)
+
+        if not target:
+            return None, "target network must be specified with -t or --target"
+
+        url = get_url(self.config, target)
 
         try:
             if url.startswith('ws'):
@@ -221,9 +224,10 @@ class Contract:
         self.te_map = dict()
         self.contract_obj = None
 
-    def deploy(self, overwrite=False):
+    def deploy(self, target, overwrite=False):
         '''
         deploy this contract
+        :param target:
         :param w3: network targeted for deployment
         :param account:  the account address to use
         :return: address, err
@@ -234,7 +238,10 @@ class Contract:
         # TODO (contd) - doesn't make sense this way
 
         name = self.name.replace('<stdin>:', "")
-        key = DB.pkey([EZO.DEPLOYED, name, self._ezo.target, self.hash])
+        key = DB.pkey([EZO.DEPLOYED, name, target, self.hash])
+
+        if not target:
+            return None, "target network must be set with -t or --target"
 
         password = os.environ['EZO_PASSWORD'] if 'EZO_PASSWORD' in os.environ else None
 
@@ -244,9 +251,9 @@ class Contract:
             if err:
                 return None, "ERROR: Contract.deployment() {}".format(err)
             if res:
-                return None, "deployment on {} already exists for contract {} use '--overwrite' to force".format(self._ezo.target, self.hash)
+                return None, "deployment on {} already exists for contract {} use '--overwrite' to force".format(target, self.hash)
 
-        account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
+        account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, target))
         self._ezo.w3.eth.accounts[0] = account
 
         try:
@@ -270,7 +277,7 @@ class Contract:
         d["tx-hash"] = tx_hash
         d["address"] = address
         d["gas-used"] = tx_receipt["gasUsed"]
-        d["target"] = self._ezo.target
+        d["target"] = target
         d["timestamp"] = datetime.utcnow()
 
         # save the deployment information
@@ -728,7 +735,6 @@ class DB:
 
         while(True):
             try:
-                print('ha')
                 DB.db = plyvel.DB(DB.dbpath, create_if_missing=True).prefixed_db(bytes(DB.project, 'utf-8'))
                 if DB.db:
                     break
