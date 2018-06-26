@@ -38,7 +38,7 @@ class EZO:
         self.w3 = None
         EZO.db = DB(config["project-name"], config["leveldb"] )
 
-    def dial(self, target=None):
+    def dial(self, target):
         '''
         connects to a node
 
@@ -69,7 +69,7 @@ class EZO:
 
         return self.w3, None
 
-    def start(self, contract_names):
+    def start(self, contract_names, target):
         '''
         loads the contracts -- starts their event listeners
         :param contract_names:
@@ -94,7 +94,7 @@ class EZO:
                 EZO.log.warn(blue("contract {} not found".format(name)))
                 continue
 
-            address, err = Contract.get_address(name, c.hash, self)
+            address, err = Contract.get_address(name, c.hash, self.db, target=target)
 
             if err:
                 EZO.log.error(red("error obtaining address for contract {}").format(name))
@@ -104,7 +104,7 @@ class EZO:
                 EZO.log.error(red("no address for contract {}".format(name)))
                 continue
 
-            contract_listeners.append(c.listen(address))
+            contract_listeners.append(c.listen(address, target))
 
         if contract_listeners:
             loop = asyncio.get_event_loop()
@@ -160,7 +160,6 @@ class EZO:
         # leveldb directory (created by level)
         leveldb = "{}/{}".format(path, "ezodb")
 
-
         # create the initial config.json file
         cfg = create_blank_config_obj()
 
@@ -184,7 +183,7 @@ class EZO:
 
 class ContractEvent:
 
-    def __init__(self, rce):
+    def __init__(self, rce, target):
         self.timestamp = int(time.time())
         self.address = rce["address"]
         self.data = rce["data"]
@@ -193,11 +192,12 @@ class ContractEvent:
         self.topics = rce["topics"]
         self.block_number = rce["blockNumber"]
         self.event_topic = self.topics[0]
+        self.target = target
 
     @staticmethod
-    def handler(rce, contract):
+    def handler(rce, contract, target):
 
-        ce = ContractEvent(rce)
+        ce = ContractEvent(rce, target)
 
         # find the mappped method for the topic
         if ce.event_topic in contract.te_map:
@@ -228,14 +228,10 @@ class Contract:
         '''
         deploy this contract
         :param target:
-        :param w3: network targeted for deployment
         :param account:  the account address to use
         :return: address, err
         '''
 
-       # TODO - REFACTOR so that target is passed in, rather than obtained from the EZO instance
-       # TODO (contd) - only makes sense that a contract should know how to deploy itself to a target, but
-        # TODO (contd) - doesn't make sense this way
 
         name = self.name.replace('<stdin>:', "")
         key = DB.pkey([EZO.DEPLOYED, name, target, self.hash])
@@ -290,11 +286,14 @@ class Contract:
 
         return address, None
 
-    async def listen(self, address):
+    async def listen(self, address, target):
         '''
         starts event listener for the contract
         :return:
         '''
+
+        if not address:
+            return None, "listening address not provided"
 
         EZO.log.info(bright("hello ezo::listening to address: {}".format(blue(address))))
         interval = self._ezo.config["poll-interval"]
@@ -306,7 +305,7 @@ class Contract:
                 for event in event_filter.get_new_entries():
                     if EZO.log:
                         EZO.log.debug(bright("event received: {}".format(event)))
-                    ContractEvent.handler(event, self)
+                    ContractEvent.handler(event, self, target)
                 await asyncio.sleep(interval)
         except Exception as e:
             return None, e
@@ -326,10 +325,12 @@ class Contract:
             return None, "method missing from response_data payload"
         if "params" not in response_data:
             return None, "params missing from response_data payload"
+        if "target" not in response_data:
+            return None, "target missing from response_data payload"
 
 
         address = self._ezo.w3.toChecksumAddress(response_data["address"])
-        account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, self._ezo.target))
+        account = self._ezo.w3.toChecksumAddress(get_account(self._ezo.config, response_data["target"]))
 
         self._ezo.w3.eth.accounts[0] = account
 
@@ -449,7 +450,7 @@ class Contract:
 
 
     @staticmethod
-    def send(ezo, name, method, data):
+    def send(ezo, name, method, data, target):
         '''
         runs a transaction on a contract method
         :param ezo:  ezo instance
@@ -464,7 +465,7 @@ class Contract:
         if err:
             return None, err
 
-        address, err = Contract.get_address(name, c.hash, ezo)
+        address, err = Contract.get_address(name, c.hash, ezo.db, target)
         if err:
             return None, err
 
@@ -472,6 +473,7 @@ class Contract:
         d["address"] = address
         d["function"] = method
         d["params"] = c.paramsForMethod(method, data)
+        d["target"] = target
 
 
         resp, err = c.response(d)
@@ -481,13 +483,14 @@ class Contract:
         return resp, None
 
     @staticmethod
-    def call(ezo, name, method, data):
+    def call(ezo, name, method, data, target):
         '''
         calls a method with data and returns a result without changing the chain state
         :param ezo:  ezo instance
         :param name:  name of the Contract
         :param method:  name of the contract method
         :param data: formatted data to send to the contract method
+        :param target: the target network
         :return:
         '''
 
@@ -496,14 +499,14 @@ class Contract:
         if err:
             return None, err
 
-        address, err = Contract.get_address(name, c.hash, ezo)
+        address, err = Contract.get_address(name, c.hash, ezo.db, target)
         if err:
             return None, err
 
         params = c.paramsForMethod(method, data)
 
         address = ezo.w3.toChecksumAddress(address)
-        ezo.w3.eth.defaultAccount = ezo.w3.toChecksumAddress(get_account(ezo.config, ezo.target))
+        ezo.w3.eth.defaultAccount = ezo.w3.toChecksumAddress(get_account(ezo.config, target))
 
         if not c.contract_obj:
             try:
@@ -617,7 +620,7 @@ class Contract:
         return compiled_list, None
 
     @staticmethod
-    def get_address(name, hash, ezo):
+    def get_address(name, hash, db, target=None):
         '''
         fetches the contract address of deployment
 
@@ -626,9 +629,9 @@ class Contract:
                  error, if any
         '''
 
-        key = DB.pkey([EZO.DEPLOYED, name, ezo.target, hash])
+        key = DB.pkey([EZO.DEPLOYED, name, target, hash])
 
-        d, err = ezo.db.get(key)
+        d, err = db.get(key)
         if err:
             return None, err
         if not d:

@@ -22,6 +22,7 @@ def test_01_ezo_compile_contract(capsys):
         out, err = capsys.readouterr()
         assert 'CONTRACT' in err
 
+
 def test_01a_ezo_compile_contract_no_overwrite_with_error(capsys):
     with EZOTestApp(argv=['compile', 'time_oracle.sol'], config_files=['testezo.conf']) as app:
         app.ezo = EZO(app.config["ezo"])
@@ -63,22 +64,13 @@ def test_02b_ezo_deploy_contract_missing_target_with_error(capsys):
         assert 'target must be set with the -t option before deploying' in err
 
 
-def test_02c_ezo_deploy_contract_missing_target_with_error(capsys):
-    with EZOTestApp(argv=['deploy', 'BadContractNameLtd', '-t', 'test'], config_files=['testezo.conf']) as app:
-        app.ezo = EZO(app.config["ezo"])
-        app.run()
-        out, err = capsys.readouterr()
-        assert 'not found -- has it been compiled?' in err
-
-
 @pytest.mark.skip
 def test_02c_ezo_deploy_contract_bad_target_name_with_error(capsys):
-    with EZOTestApp(argv=['deploy', 'BadContractNameLtd', '-t', 'veryNaughtTargetName'], config_files=['testezo.conf']) as app:
+    with EZOTestApp(argv=['deploy', 'TimestampRequestOracle', '-t', 'veryNaughtTargetName'], config_files=['testezo.conf']) as app:
         app.ezo = EZO(app.config["ezo"])
         app.run()
         out, err = capsys.readouterr()
         assert '' in err
-
 
 
 ### views and files

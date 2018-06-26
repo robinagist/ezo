@@ -146,7 +146,7 @@ class EZOBaseController(CementBaseController):
             log.error(red("error: missing contract name"))
             return
 
-        res, err = ezo.start(args.extra_args)
+        res, err = ezo.start(args.extra_args, target=args.target)
         if err:
             log.error(red("error: {}".format(err)))
         else:
@@ -330,7 +330,7 @@ class EZOTestClientController(CementBaseController):
             log.error("target must be set with the -t option before deploying")
             return
 
-        ezo.target = args.target
+#        ezo.target = args.target
 
         if len(params) != 3:
             self.app.log.error(red("missing parameters for send tx - 3 required"))
@@ -344,7 +344,7 @@ class EZOTestClientController(CementBaseController):
         method = params[1]
         data = params[2]
 
-        resp, err = Contract.send(ezo, name, method, data)
+        resp, err = Contract.send(ezo, name, method, data, target=args.target)
         if err:
             self.app.log.error(red("tx error: {}".format(err)))
             return err
@@ -366,7 +366,7 @@ class EZOTestClientController(CementBaseController):
         if not args.target:
             log.error("target must be set with the -t option before deploying")
             return
-        ezo.target = args.target
+#        ezo.target = args.target
 
         _, err = ezo.dial(args.target)
         if err:
@@ -381,7 +381,7 @@ class EZOTestClientController(CementBaseController):
         method = params[1]
         data = params[2]
 
-        resp, err = Contract.call(ezo, name, method, data)
+        resp, err = Contract.call(ezo, name, method, data, args.target)
 
         if err:
             self.app.log.error(red("call error: {}".format(err)))
