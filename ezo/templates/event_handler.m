@@ -20,6 +20,7 @@ def handler(data, contract):
     # response["address"] = data.address  # <<< the contract's address from the data
     # response["function"] = None         # <<< replace None with the Contract function that will be called
     # response["params"] = None           # <<< replace None with a list of your function's data parameters
+    # response["target"] = data.target    # <<< the target network for the response
 
     ### uncomment the code below to send a response to the contract function
     # _, err = contract.response(response)
