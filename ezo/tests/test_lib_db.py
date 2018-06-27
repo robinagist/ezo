@@ -47,9 +47,15 @@ class TestDB:
         assert err is None
         assert ks is None
 
+    def test_03z_db_save_okay(self):
+        key = "hello333"
+        value = "me"
+        ks, err = TestDB.db.save(key, value)
+        assert err is None
+
     @pytest.mark.skip
     def test_04_db_find_3(self):
-        key = "hello2"
+        key = "hello33"
         value = "me"
         ks, err = TestDB.db.save(key, value)
         assert err is None

@@ -34,7 +34,7 @@ class EZO:
         if not config:
             return
         self.config = config
-        self.target = None
+#        self.target = None
         self.w3 = None
         EZO.db = DB(config["project-name"], config["leveldb"] )
 
@@ -114,6 +114,7 @@ class EZO:
         else:
             return None, "unable to start contract listeners"
 
+
     @staticmethod
     def create_project(name, include_examples=True):
         '''
@@ -150,7 +151,6 @@ class EZO:
                     print(bright("problem creating sample file: '{}".format(path)))
                     return None, e
                 print(bright("created sample contract: '{}".format(fn)))
-
 
         # create the handlers directory
         handlers_dir = "{}/{}".format(path, "handlers")
@@ -232,7 +232,6 @@ class Contract:
         :return: address, err
         '''
 
-
         name = self.name.replace('<stdin>:', "")
         key = DB.pkey([EZO.DEPLOYED, name, target, self.hash])
 
@@ -254,7 +253,10 @@ class Contract:
 
         try:
             u_state = self._ezo.w3.personal.unlockAccount(account, password)
+        except Exception as e:
+            return None, "unable to unlock account for {} using password".format(account)
 
+        try:
             ct = self._ezo.w3.eth.contract(abi=self.abi, bytecode=self.bin)
             gas_estimate = ct.constructor().estimateGas()
             h = {'from': account, 'gas': gas_estimate + 1000}
@@ -741,12 +743,14 @@ class DB:
                 DB.db = plyvel.DB(DB.dbpath, create_if_missing=True).prefixed_db(bytes(DB.project, 'utf-8'))
                 if DB.db:
                     break
+
             except Exception as e:
                 # wait for other program to unlock the db
                 count+=1
                 time.sleep(1)
                 if count >= cycle:
                     return None, "DB error: {}".format(e)
+
         return None, None
 
     def save(self, key, value, overwrite=False, serialize=True):
@@ -771,6 +775,7 @@ class DB:
 
         except Exception as e:
             return None, e
+
         finally:
             self.close()
 
@@ -825,6 +830,7 @@ class DB:
         res = list()
         try:
             it = DB.db.iterator(prefix=keypart)
+            it.seek_to_start()
 
             for key, value in it:
                res.append({key.decode('utf-8'): pickle.loads(value)})

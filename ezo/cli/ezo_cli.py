@@ -109,7 +109,7 @@ class EZOBaseController(CementBaseController):
                 log.error(red("error deploying contract {} to {}".format(c.hash, args.target)))
                 log.error(red("message: {}".format(err)))
                 return
-            print("pytest>>DEPLOYED CONTRACT")
+
             log.info(cyan("successfully deployed contract {} named {} to stage '{}' at address {}".format(c.hash, c.name, args.target, addr)))
 
         return
@@ -136,7 +136,7 @@ class EZOBaseController(CementBaseController):
         if not args.target:
             log.error("target must be set with the -t option before deploying")
             return
-        ezo.target = args.target
+#        ezo.target = args.target
         _, err = ezo.dial(args.target)
         if err:
             log.error(red("error with node: {}".format(err)))
