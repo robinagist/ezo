@@ -20,7 +20,7 @@ Inspired by AWS toolsets, such as Serverless and Gordon, `ezo` allows for multip
 + built-in Ethereum test client.  Start ezo and bring up a second terminal to run contracts that kick off events. 
 + asychronous, single-threaded.  no multiprocess witchcraft to deal with.
 
-### coming in version 1.0 - decentralized Ezo on BigchainDB
+### coming in version 1.0 - decentralized Ezo on Tendermint!!  
 
 ![ezo in action](https://user-images.githubusercontent.com/1685659/41318471-44f8a1f8-6e4d-11e8-8707-441c58d78987.png)
 ##### ezo test client running against another instance of ezo in oracle mode
