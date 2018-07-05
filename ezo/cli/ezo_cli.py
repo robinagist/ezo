@@ -330,8 +330,6 @@ class EZOTestClientController(CementBaseController):
             log.error("target must be set with the -t option before deploying")
             return
 
-#        ezo.target = args.target
-
         if len(params) != 3:
             self.app.log.error(red("missing parameters for send tx - 3 required"))
             return
