@@ -1,5 +1,8 @@
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
+from core.tm_utils import EzoABCI
+from abci import ABCIServer
+
 
 
 class ABCIBaseController(CementBaseController):
@@ -8,7 +11,8 @@ class ABCIBaseController(CementBaseController):
     '''
     class Meta:
         label = 'base'
-        description = 'ezo - easy Ethereum oracles'
+        description = 'ezo runtime'
+        '''
         arguments = [
             (['-t', '--target'],
              dict(action='store', help='deployment target node set in configuration')),
@@ -19,6 +23,7 @@ class ABCIBaseController(CementBaseController):
             (['extra_args'],
              dict(action='store', nargs='*'))
         ]
+        '''
 
     @expose(help="")
     def default(self):
@@ -27,31 +32,15 @@ class ABCIBaseController(CementBaseController):
         ezo = self.app.ezo
         log = self.app.log
 
-        for filename in self.app.pargs.extra_args:
-            log.info(cyan("compiling contracts in {}".format(filename)))
 
-            filename = get_contract_path(self.app.config["ezo"], filename)
-            contracts_source, err = Contract.load(filename)
-            if err:
-                log.error(red("error loading contracts file: {}".format(err)))
-                return err
+    @expose(help="start Ezo ABCI server")
+    def start(self):
 
-            contracts, err = Contract.compile(contracts_source, ezo)
-            if err:
-                log.error(red("error compiling contracts source: {}".format(err)))
-                return err
+        log = self.app.log
+        args = self.app.pargs
 
-            # persist the compiled contract
-            for contract in contracts:
-                contract.source = contracts_source
-                iid, err = contract.save(overwrite=self.app.pargs.overwrite)
-                if err:
-                    log.error(red("error while persisting Contract to datastore: {}".format(err)))
-                    return err
-                else:
-                    log.info(cyan("contract saved: {}".format(iid)))
-                    print("pytest>>CONTRACT_SAVED")
-            return
+        abci_app = ABCIServer(app=EzoABCI())
+        abci_app.run()
 
 
 
@@ -61,11 +50,10 @@ class ABCIApp(CementApp):
     class Meta:
         label = "ezo"
         base_controller = "base"
-        extensions = ['json_configobj', 'mustache']
+        extensions = ['json_configobj']
         config_handler = 'json_configobj'
         config_files = ['ezo.conf']
 
         handlers = [
             ABCIBaseController
         ]
-        output_handler = 'mustache'
