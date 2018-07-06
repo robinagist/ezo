@@ -64,6 +64,7 @@ class EzoABCI(BaseApplication):
     def deliver_tx(self, tx) -> ResponseDeliverTx:
         """Simply increment the state"""
         self.txCount += 1
+
         return ResponseDeliverTx(code=CodeTypeOk)
 
     def query(self, req) -> ResponseQuery:
