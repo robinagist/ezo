@@ -32,6 +32,6 @@ tqdm==4.23.4
 twine==1.11.0
 urllib3==1.22
 web3==4.2.1
-websockets==4.0.1
+websockets==9.1
 xkcdpass==1.16.5
 xxhash==1.0.1
